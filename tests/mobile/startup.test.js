@@ -18,3 +18,7 @@ test('初始化失败不显示未经整理的旧版页面',()=>{
  assert.ok(!read('entry-loader.js').includes("document.body.dataset.mlReady='true'"));
  assert.ok(read('pwa.js').includes("updateViaCache:'none'"));
 });
+
+test('档案样式由 HTML 在应用入口前加载，挂载过程不异步注入 CSS',()=>{
+ const html=read('index.html'),style=html.indexOf('id="profilesStyle"');assert.ok(style>0);assert.ok(style<html.indexOf('src="entry-loader.js"'));assert.ok(style<html.indexOf('href="typography.css"'));assert.ok(!read('profiles-ui.js').includes("document.createElement('link')"));
+});

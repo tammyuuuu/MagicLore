@@ -1,6 +1,6 @@
 // Bump VERSION for every deployment. Stage only the shell and previously visited assets.
 const BASE=new URL('./',self.location.href),PREFIX='magiclore-'+encodeURIComponent(BASE.pathname)+'-';
-const VERSION='20261025-137',RELEASE=PREFIX+VERSION,CORE=RELEASE+'-core',RUNTIME=RELEASE+'-visited',STATE=PREFIX+'state';
+const VERSION='20261025-138',RELEASE=PREFIX+VERSION,CORE=RELEASE+'-core',RUNTIME=RELEASE+'-visited',STATE=PREFIX+'state';
 const core=['./','index.html','mobile.css','typography.css','home.css','home-icons.js','assets/home/hero.webp','assets/home/archive.webp','assets/home/notes.webp','assets/home/knowledge.webp','entry-loader.js','app.js','notes-store.js','notes-ui.js','notes-knowledge.js','notes.css','chart-profile.js','profiles-ui.js','person-editor.js','profile-birth-picker.js','profiles.css','person-store.js','profile-time.js','profile-calendar-loader.js','profile-store.js','pwa.js','manifest.webmanifest','icons/icon-192.webp','icons/icon-512.webp','icons/apple-touch-icon.png','offline.html'];
 const belongs=key=>key.startsWith(PREFIX)||(BASE.pathname==='/'&&/^magiclore-20261024-[1-4]-/.test(key));
 self.addEventListener('install',event=>event.waitUntil((async()=>{

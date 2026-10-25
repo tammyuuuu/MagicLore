@@ -7,7 +7,6 @@ const timeText=p=>p.birth.time||'时间未知';
 const placeText=p=>p.birth.place.name||'地点未知';
 const messages={gap:'这个当地时刻落在夏令时跳过的时段内，请核对。原始输入会保留，不会自动调整。',ambiguous:'这个当地时刻出现过两次，请核对当时的 UTC 偏移；暂不确定也可以先保存。',conflict:'时区规则与所填 UTC 偏移不一致，请核对；资料不会自动改写。','unknown-zone':'时区未知，暂不换算出生瞬间。','unknown-date':'出生日期未知，暂不换算出生瞬间。','unknown-time':'出生时间未知，不以中午或零点代替。'};
 export function mountProfiles(main,{notify,backup,initialView='people',management=false,startNew=false,startEdit=null,onEditorSaved=null,onEditorCancel=null}){
-  if(!document.getElementById('profilesStyle')){const link=document.createElement('link');link.id='profilesStyle';link.rel='stylesheet';link.href=new URL('profiles.css',document.baseURI).href;document.head.append(link);}
   let view=initialView,query='';
   function backButton(){const button=main.querySelector('[data-back]');if(button)button.onclick=render;}
   function render(){
