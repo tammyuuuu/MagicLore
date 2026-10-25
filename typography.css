@@ -26,3 +26,6 @@ html body.ml-app.ml-app .me-footer p{color:#746c8c}
 html body.ml-module.ml-module :is(.mc-birth,.mc-summary,.section-index,.eyebrow){color:#625d7c!important}
 
 html body.ml-app.ml-app .pf-list-name{font-family:var(--ui-font)!important}
+
+/* Desktop preview backdrop stays outside the centered app surface. */
+@media(min-width:461px){html:root{background:#D8D5E8}}
