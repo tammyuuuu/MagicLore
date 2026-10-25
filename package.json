@@ -1,0 +1,26 @@
+{
+  "name": "magiclore",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:bazi": "node --test tests/bazi/*.test.js",
+    "build:bazi": "esbuild src/bazi/ui/baziApp.js --bundle --platform=browser --format=iife --minify --legal-comments=eof --outfile=bazi_app.js",
+    "test:vedic": "node --test tests/vedic/*.test.js",
+    "build:vedic": "esbuild src/vedic/ui/vedicVerifyApp.js --bundle --platform=browser --format=iife --outfile=vedic_verify_app.js",
+    "build:vedic:classic": "node tools/build_vedic_classic.mjs",
+    "test": "node --test tests/bazi/*.test.js tests/vedic/*.test.js tests/western/*.test.js tests/mobile/*.test.js",
+    "build:western": "node tools/build_western.mjs",
+    "build:mobile-time": "esbuild src/civil-offset.js --bundle --platform=browser --format=esm --minify --legal-comments=eof --outfile=civil-offset.js",
+    "build:pwa": "node tools/build_file_preview.mjs && python tools/build_pwa_manifest.py",
+    "build:file-preview": "node tools/build_file_preview.mjs"
+  },
+  "dependencies": {
+    "@js-joda/core": "^6.1.0",
+    "@js-joda/timezone": "^2.25.2",
+    "astronomy-engine": "^2.1.19",
+    "lunar-javascript": "^1.7.7"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

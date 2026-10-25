@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {dasamsaLongitude,calculateDasamsa} from '../../src/vedic/dasamsa.js';
+import {dasamsaNarrative} from '../../src/vedic/dasamsaNarrative.js';
+import {calculateVedicChart} from '../../src/vedic/calculateVedicChart.js';
+test('D10 odd/even starts, three-degree boundaries and textbook examples',()=>{assert.equal(dasamsaLongitude(0),0);assert.equal(dasamsaLongitude(30),270);assert.equal(dasamsaLongitude(3),30);assert.ok(dasamsaLongitude(2.999)<30);assert.equal(dasamsaLongitude(70),160);assert.equal(dasamsaLongitude(229),280);assert.equal(dasamsaLongitude(360),0);});
+test('D10 transforms all positions without changing D1 and builds distinct career cards',()=>{const c=calculateVedicChart({date:'2000-01-01',time:'12:00:00',latitude:39.9,longitude:116.4,timezoneOffset:'+08:00'}),saved=JSON.stringify(c),d=calculateDasamsa(c);assert.equal(d.varga,'D10');assert.equal(d.grahas.length,9);for(const p of d.grahas)assert.equal(p.bhava,(p.signIndex-d.lagna.signIndex+12)%12+1);const r=dasamsaNarrative(c);assert.equal(r.cards.length,4);assert.equal(new Set(r.cards.map(p=>p.title)).size,4);assert.equal(JSON.stringify(c),saved);});

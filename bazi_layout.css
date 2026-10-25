@@ -1,0 +1,51 @@
+.bazi-overview{display:grid;grid-template-columns:minmax(320px, .9fr) minmax(0,1.1fr);gap:30px;align-items:start;margin-top:22px}
+.bazi-overview>section{min-width:0}
+.bazi-overview h2{margin:0 0 16px}
+body .bazi-overview .chart-wrap{overflow:clip;height:auto;max-height:none}
+body .bazi-overview #chart{min-width:0;table-layout:fixed;width:100%;margin:0}
+body .bazi-overview #chart th,body .bazi-overview #chart td{padding:10px 3px;overflow-wrap:anywhere}
+body .bazi-overview .luck-row{display:grid;grid-template-columns:repeat(8,minmax(54px,1fr));min-width:0;width:100%;gap:4px;overflow:auto}
+body .bazi-overview .luck-row>div{min-width:54px;padding:10px 2px}
+body .bazi-overview .luck-row .pair{display:flex;flex-direction:column;gap:10px;background:transparent;border:0;padding:0;margin-top:12px}
+body .bazi-overview .luck-row .pair strong{display:block;font-size:19px;line-height:1.3;font-weight:500}
+body .bazi-overview .luck-row .pair small{font-size:10px;margin-top:4px}
+body .bazi-overview .luck-row .date,body .bazi-overview .luck-row>div>b{font-size:11px;white-space:nowrap}
+.bazi-overview #luck>p{margin:0 0 16px;line-height:1.9}
+body #baziReading{max-width:1100px;margin:36px 0;padding-top:12px;border-top:1px solid var(--line)}
+@media(max-width:1100px){.bazi-overview{grid-template-columns:1fr;gap:28px}}
+@media(max-width:600px){body .bazi-overview #chart{font-size:12px}body .bazi-overview #chart strong{font-size:24px}.bazi-overview{margin-top:18px}}
+
+body .bazi-overview{grid-template-columns:minmax(320px,1fr) minmax(0,1fr);gap:26px}
+body .bazi-overview #luck .fortune-card{border:0;border-radius:0;background:transparent;padding:6px 2px;font-weight:400}
+body .bazi-overview #luck .fortune-card:is(.active,:hover){background:var(--bg2);box-shadow:inset 0 -2px var(--gold)}
+body .bazi-overview #luck .pair{display:flex;flex-direction:column;gap:9px;margin-top:10px}
+body .bazi-overview #luck .pair>span{display:flex;align-items:center;justify-content:center;gap:3px}
+body .bazi-overview #luck .pair strong{font-size:18px;line-height:1.3;font-weight:500}
+body .bazi-overview #luck .pair small{font-size:9px;margin:0}
+body .bazi-overview #luck .date{font-size:10px}
+body .bazi-overview #luck .fortune-card>b{font-size:11px;font-weight:400;margin:6px 0}
+body .bazi-overview #luck .luck-row{grid-template-columns:repeat(8,minmax(50px,1fr));gap:2px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+body .bazi-overview #luck .fortune-grid{grid-auto-columns:minmax(50px,1fr);gap:2px}
+body .bazi-overview #luck .minor{border:0;margin-top:9px;padding:0}
+body .bazi-overview #luck .minor>strong{font-size:12px;font-weight:400}
+body .bazi-overview #luck .minor small{font-size:8px}
+body .bazi-overview #luck .minor>small:first-child{display:none}
+body .bazi-overview #luck h3{font-size:15px;margin:16px 0 8px}
+body .bazi-overview #luck .annual-detail>p{font-size:11px;line-height:1.7;margin:8px 0}
+body .bazi-overview #luck .month-panel{margin-top:18px}
+@media(max-width:1100px){body .bazi-overview{grid-template-columns:1fr}}
+body .bazi-overview #luck .fortune-card{background:transparent!important}body .bazi-overview #luck .fortune-card:is(.active,:hover){background:var(--bg2)!important}
+body .bazi-overview .chart-wrap:has(.reference-plate){border:0;border-radius:0;background:transparent!important}
+body .bazi-overview #chart.reference-plate{font-size:13px}
+body .bazi-overview #chart.reference-plate :is(td,th){border:0;padding:11px 2px;background:transparent;vertical-align:top;font-weight:400}
+body .bazi-overview #chart.reference-plate th{color:var(--muted);white-space:nowrap}
+body .bazi-overview #chart.reference-plate tr:nth-child(odd){background:var(--bg2)}
+body .bazi-overview #chart.reference-plate .transit-start{border-left:1px solid var(--line)}
+.reference-plate .plate-character{font-size:28px;line-height:1.6;display:block}
+.reference-plate .plate-hidden{display:flex;justify-content:center;gap:4px;align-items:center;min-height:29px}
+.reference-plate .plate-hidden>.element-木,.reference-plate .plate-hidden>span:first-child{font-size:17px}
+body .bazi-overview #chart.reference-plate .plate-stars td{font-size:11px;line-height:2.3;color:var(--muted)}
+#plateRuleNote{margin-top:12px;font-size:11px;line-height:1.9}
+#plateRuleNote p{font-size:11px}
+@media(max-width:600px){body .bazi-overview #chart.reference-plate{font-size:10px}.reference-plate .plate-character{font-size:22px}body .bazi-overview #chart.reference-plate .plate-stars td{font-size:9px;overflow-wrap:anywhere}body .bazi-overview #chart.reference-plate th{white-space:normal}.reference-plate .plate-hidden{gap:2px}}
+body #timeSummary{display:block}body #timeSummary .plate-birth{background:transparent;border:0;border-left:0;padding:0;display:grid;gap:10px}body #timeSummary .plate-birth b{font-size:18px;color:var(--ink)}body #timeSummary .plate-birth span{font-size:13px;color:var(--muted)}body .bazi-overview #chart.reference-plate tr:nth-child(odd){background:transparent}body .bazi-overview #chart.reference-plate tbody tr:is(:nth-child(1),:nth-child(4),:nth-child(6),:nth-child(9)){background:var(--bg2)}

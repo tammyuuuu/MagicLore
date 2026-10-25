@@ -1,0 +1,62 @@
+#form{--place-popup:var(--bg1);--place-selection:var(--bg2);--place-selected-ink:var(--ink);--library-surface:var(--bg1);--place-scheme:dark;}
+
+#form .compact-place-actions{flex-wrap:wrap;}
+#form .compact-place-value{min-width:150px;font-size:14px;}
+#form .compact-place-popup{max-width:100%;min-width:0;}
+#form .china-place-note{margin-top:8px;color:var(--ink-dim,var(--muted));}
+#form .bazi-birth-location .china-place-note{display:none!important;}
+#form .birth-location-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+#form .birth-location-details[hidden]{display:none!important;}
+#form .compact-place-popup select[size]{width:100%;height:190px!important;}
+#form .compact-place-popup button{width:auto;letter-spacing:0;padding:6px 12px;}
+#form .compact-place-popup .china-place-regions{margin-top:12px;}
+#form .china-place-manual{width:auto;}
+#form .bazi-birth-location .compact-place-actions{align-items:flex-start;}
+#form .bazi-birth-location .compact-place-value{margin-top:0!important;height:48px;}
+#form .bazi-birth-location .china-place-manual{border:0!important;background:transparent!important;box-shadow:none!important;border-radius:0!important;color:var(--gold)!important;padding:0!important;margin:6px 0 0!important;font-weight:400;font-size:11px!important;text-align:left;}
+#form .bazi-birth-location .china-place-manual::before{content:'▸';display:inline-block;margin-right:5px;}
+#form .bazi-birth-location:has(.china-place-regions[hidden]) .china-place-manual::before{content:'▾';}
+#form .bazi-birth-location .compact-place-actions .china-place-manual{flex-basis:100%;}
+#form :is(.compact-date-control,.compact-time-control)>.compact-place-value{width:100%;height:48px;margin:0;font-size:14px;text-align:left;}
+#form :is(.compact-date-popup,.compact-time-popup){width:100%;max-width:100%;background:var(--place-popup)!important;color:var(--ink);border-color:var(--line)!important;}
+#form .date-panel-head{grid-template-columns:24px minmax(0,1fr) minmax(0,1fr) 24px;gap:4px;}
+#form .date-panel-head button,#form .date-panel-grid button{padding:6px 0;margin:0;min-width:0;}
+#form .date-panel-grid{gap:2px;}
+#form .compact-place-popup button{grid-column:auto!important;}
+#form .date-panel-grid button{width:100%!important;min-height:32px;border:1px solid transparent!important;background:transparent!important;box-shadow:none!important;}
+#form .date-panel-head button{width:24px!important;}
+#form .date-panel-head :is(input,select){min-width:0;width:100%;}
+#form .date-panel-grid button:hover{border-color:var(--gold)!important;}
+#form .bazi-birth-location .compact-place-popup{border:0!important;border-radius:0;box-shadow:none!important;padding:14px;}
+#form .bazi-birth-location .compact-place-popup :is(button,select[size]){border:0!important;border-radius:0!important;box-shadow:none!important;outline-offset:2px;}
+#form .bazi-birth-location .compact-place-popup button{background:transparent!important;margin-top:0;}
+#form .bazi-birth-location .compact-place-steps{gap:18px;}
+#form .bazi-birth-location .compact-place-steps button{padding:4px 0!important;}
+#form .bazi-birth-location .compact-place-steps button[aria-pressed=true]{background:transparent!important;color:var(--gold)!important;border-bottom:1px solid var(--gold)!important;}
+#form .bazi-birth-location .compact-place-popup select[size]{padding:0!important;scrollbar-width:thin;}
+#form .bazi-birth-location .compact-place-popup select[size]{background:var(--place-popup)!important;color:var(--ink)!important;}
+#form .bazi-birth-location .compact-place-popup option{padding:9px 10px;}
+#form .bazi-birth-location .compact-place-done{padding:6px 0!important;margin-top:10px;}
+#form .compact-place-popup option{background:var(--place-popup);color:var(--ink);}
+#form .compact-place-popup :is(button[aria-pressed=true],option:checked){background:var(--place-selection)!important;color:var(--place-selected-ink)!important;}
+#form .bazi-birth-location{grid-column:auto;}
+#form .bazi-time-correction{margin:8px 0;min-width:0;color:var(--ink);font-size:13px;}
+#form .bazi-time-correction>span:first-child{display:block;margin-bottom:6px;}
+#form .bazi-time-correction .bazi-zone-summary{display:inline-block;font-size:12px;margin-right:14px;}
+#form .bazi-time-correction .check{display:inline-flex;margin:0;gap:6px;font-size:12px;vertical-align:middle;}
+#form .bazi-zone-editor{border:0;padding:0;margin:6px 0 0;font-size:11px;}
+#form .bazi-zone-editor summary{font-size:11px;}
+#form .bazi-zone-editor summary{list-style:none;display:block;cursor:pointer;color:var(--gold);font:400 11px/1.8 "Noto Serif SC","Songti SC",serif;letter-spacing:0;padding:0;}
+#form .bazi-zone-editor summary::-webkit-details-marker{display:none;}
+#form .bazi-zone-editor summary::before{content:'▸';display:inline-block;margin-right:5px;}
+#form .bazi-zone-editor[open] summary::before{content:'▾';}
+#form .bazi-birth-location .compact-place-actions .china-place-manual{display:block!important;font:400 11px/1.8 "Noto Serif SC","Songti SC",serif!important;letter-spacing:0!important;color:var(--gold)!important;padding:0!important;margin:6px 0 0!important;}
+#form .bazi-zone-editor label{font-size:12px;}
+#form select:not([size]){appearance:none;padding-right:32px!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%2391a3a4' stroke-width='1.5'/%3E%3C/svg%3E")!important;background-repeat:no-repeat!important;background-position:right 14px center!important;}
+#form .compact-place-value{position:relative;padding-right:32px!important;}
+#form .compact-place-value::after{content:'';position:absolute;right:15px;top:50%;width:7px;height:7px;border-right:1.5px solid #91a3a4;border-bottom:1.5px solid #91a3a4;transform:translateY(-70%) rotate(45deg);}
+body.embedded #form{grid-template-columns:repeat(3,minmax(0,1fr));}
+body.embedded #form>label{min-width:0;}
+@media(max-width:1000px){body.embedded #form{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:640px){body.embedded #form{grid-template-columns:minmax(0,1fr);}}
+@media(max-width:640px){#form .birth-location-details{grid-template-columns:1fr;}}

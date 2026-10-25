@@ -1,0 +1,8 @@
+
+body[data-library-system="vedic"] main { margin-top:0; padding-top:80px; }
+body[data-library-system="vedic"] :is(.birth-panel,.advanced,.chart-paper,.guide,.house-card,.moon-panel,.selection-panel,.dasha-node,.teaching-note) { background:var(--library-surface); color:var(--body); border-color:var(--line); }
+body[data-library-system="vedic"] :is(label,summary,.legend,.convention) { color:var(--body); }
+body[data-library-system="vedic"] :is(.primary-btn,.quiet-btn) { color:var(--gold2); border-color:var(--gold); background:var(--library-surface); }
+body[data-library-system="vedic"] .chart-paper svg text { fill:var(--ink); }
+body[data-library-system="vedic"] .chart-paper svg :is(line,polygon,polyline,rect) { stroke:var(--gold); }
+body:is([data-library-system="vedic"],[data-library-system="western"]) main { padding-top:150px; }

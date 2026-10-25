@@ -1,0 +1,17 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {normalizeLongitude,splitLongitude} from '../../src/vedic/zodiac.js';import {getNakshatra,NAKSHATRA_SPAN,PADA_SPAN} from '../../src/vedic/nakshatra.js';import {nodePair} from '../../src/vedic/nodes.js';import {wholeSignHouses,bhavaForSign} from '../../src/vedic/houses.js';import {vimshottariMahadasha} from '../../src/vedic/dasha.js';import {calculateVedicChart} from '../../src/vedic/calculateVedicChart.js';
+import {pushyaPakshaAyanamsa} from '../../src/vedic/ayanamsa.js';import {julianTimes} from '../../src/vedic/astronomy.js';
+test('0° starts Aries',()=>assert.deepEqual(splitLongitude(0),{longitude:0,signIndex:0,sign:'Aries',degree:0,arcminute:0,arcsecond:0,inSignDegrees:0}));
+test('30° crosses exactly to Taurus',()=>assert.equal(splitLongitude(30).sign,'Taurus'));
+test('360° normalizes to 0°',()=>assert.equal(normalizeLongitude(360),0));
+test('29°59′59″ remains Aries',()=>assert.equal(splitLongitude(30-1/3600).sign,'Aries'));
+test('Nakshatra exact boundary advances',()=>assert.equal(getNakshatra(NAKSHATRA_SPAN).name,'Bharani'));
+test('Pada exact boundary advances',()=>assert.equal(getNakshatra(PADA_SPAN).pada,2));
+test('Rahu and Ketu are exactly opposite for true and mean nodes',()=>{for(const type of ['true','mean']){const x=nodePair(2451545,type);assert.equal(normalizeLongitude(x.ketu-x.rahu),180);}});
+test('Whole Sign houses map Virgo through Leo',()=>{const h=wholeSignHouses(5);assert.equal(h[0].sign,'Virgo');assert.equal(h[11].sign,'Leo');assert.equal(bhavaForSign(7,5),3);});
+test('Vimshottari timeline totals 120 years',()=>assert.equal(vimshottariMahadasha(0,new Date('2000-01-01Z')).totalYears,120));
+test('Moon at Nakshatra start has full first Mahadasha remaining',()=>{const d=vimshottariMahadasha(0,new Date('2000-01-01Z'));assert.equal(d.elapsedYears,0);assert.equal(d.remainingYears,7);});
+test('Moon near Nakshatra end has almost no first Mahadasha remaining',()=>{const d=vimshottariMahadasha(NAKSHATRA_SPAN-1e-9,new Date('2000-01-01Z'));assert.ok(d.remainingYears<1e-8);});
+test('end-to-end chart exposes audit chain and eastern Lagna',()=>{const c=calculateVedicChart({date:'1990-01-01',time:'12:00:00',place:'New Delhi',latitude:28.6139,longitude:77.209,timezoneOffset:'+05:30'},{nodeType:'true'});assert.ok(c.times.jd>2440000);assert.equal(c.grahas.length,9);assert.equal(c.lagna.sign,'Pisces');assert.ok(Math.abs(c.lagna.siderealLongitude-343.9256439)<1e-6);assert.equal(c.validation.every(x=>x.pass),true);});
+test('Pushya-paksha reproduces Rao published J2000 reference',()=>{const {jde}=julianTimes(new Date('2000-01-01T00:30:00Z'));const expected=22+43/60+19.12/3600;assert.ok(Math.abs(pushyaPakshaAyanamsa(jde)-expected)<0.05/3600);});
+test('ayanamsaMode recomputes one internally consistent complete chart',()=>{const input={date:'1999-07-07',time:'06:30:00',place:'Suihua',latitude:46.6395,longitude:126.9951,timezoneOffset:'+08:00'},lahiri=calculateVedicChart(input,{ayanamsaMode:'lahiri'}),pushya=calculateVedicChart(input,{ayanamsaMode:'pushya_paksha'});assert.equal(lahiri.ayanamsaMode,'lahiri');assert.equal(pushya.ayanamsaMode,'pushya_paksha');assert.notEqual(lahiri.ayanamsa,pushya.ayanamsa);assert.notEqual(lahiri.grahas.find(x=>x.name==='Moon').siderealLongitude,pushya.grahas.find(x=>x.name==='Moon').siderealLongitude);assert.equal(pushya.validation.every(x=>x.pass),true);});

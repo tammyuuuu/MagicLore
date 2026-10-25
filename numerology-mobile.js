@@ -1,0 +1,30 @@
+// Compact numerology presentation; calculations and interpretation copy stay in their original modules.
+export function installNumerologyMobile(){
+ if(!location.pathname.endsWith('destiny_book_web.html'))return;
+ document.body.classList.add('nm-enabled');const context=document.querySelector('.mc-context'),row=context.querySelector('.mc-person-row'),modeRow=context.querySelector('.mc-mode-row'),report=document.getElementById('report');
+ const back=document.createElement('a');back.className='nm-back';back.href='index.html#home';back.textContent='‹';back.setAttribute('aria-label','返回藏馆');row.prepend(back);const edit=context.querySelector('.mc-edit');edit.textContent='编辑';row.append(edit);const add=context.querySelector('.mc-new');add.textContent='＋';add.setAttribute('aria-label','新建人物档案');
+ const tabs=document.createElement('div');tabs.className='nm-tabs';tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','灵数功能');modeRow.prepend(tabs);const map=new Map();for(const [hash,label]of [['life','数字概览'],['match','关系合盘']]){const b=document.createElement('button');b.type='button';b.textContent=label;b.setAttribute('role','tab');b.onclick=()=>{location.hash=hash;document.querySelector(`[data-view="${hash}"]`)?.click();};tabs.append(b);map.set(hash,b);}const syncTabs=()=>{for(const [hash,b]of map)b.setAttribute('aria-selected',String(location.hash==='#match'?hash==='match':hash==='life'));};window.addEventListener('hashchange',syncTabs);syncTabs();
+ context.querySelector('.mc-settings').remove();
+ const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ function decorate(){
+  if(!report.querySelector('#core')||report.querySelector('.nm-core'))return;
+  const date=document.getElementById('birthDate').value;let result;try{result=window.Numerology.calculate(date,new Date().getFullYear());}catch{return;}
+  const integrated=window.NumerologyContent.integrated(result);
+  for(const section of [...report.querySelectorAll(':scope>section')])if(section.querySelector('.eyebrow')?.textContent.includes('HOW TO READ'))section.remove();
+  const birth=document.createElement('p');birth.className='nm-birth';birth.textContent=date;report.prepend(birth);
+  const summary=document.createElement('section');summary.className='nm-core';summary.setAttribute('aria-label','核心数字');
+  for(const [key,label]of [['lifePath','生命路径'],['birthday','生日数'],['attitude','态度数'],['birthYear','出生年数']]){const b=document.createElement('button');b.type='button';b.className='nm-number'+(key==='lifePath'?' nm-primary-number':'');b.innerHTML=`<span>${label}</span><b>${result[key].value}</b>${[11,22,33].includes(result[key].value)?'<small>大师数</small>':''}`;b.onclick=()=>{const details=document.getElementById('core').closest('details');details.open=true;details.scrollIntoView({behavior:'smooth',block:'start'});};summary.append(b);}birth.after(summary);
+  const graph=document.createElement('section');graph.className='nm-relations';graph.innerHTML='<div class="nm-section-title"><h2>数字关系</h2><small>点击数字查看</small></div><div class="nm-graph"></div><details class="nm-relation-detail"><summary>关系解读</summary><div></div></details>';summary.after(graph);const canvas=graph.querySelector('.nm-graph'),detail=graph.querySelector('details'),detailBody=detail.querySelector('div');
+  const relations=integrated.relations,layouts={1:[[16,50]],2:[[15,50],[85,50]],3:[[15,25],[85,25],[50,85]],4:[[16,23],[84,23],[16,77],[84,77]]},points=layouts[relations.length]||[];
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 320 200');svg.setAttribute('preserveAspectRatio','none');svg.setAttribute('aria-hidden','true');
+  for(const [x,y]of points){const line=document.createElementNS(svg.namespaceURI,'line');line.setAttribute('x1',String(x*3.2));line.setAttribute('y1',String(y*2));line.setAttribute('x2','160');line.setAttribute('y2','100');svg.append(line);}canvas.append(svg);
+  const centre=document.createElement('div');centre.className='nm-rel-centre';centre.innerHTML=`<b>${result.lifePath.value}</b><span>生命路径</span>`;canvas.append(centre);
+  relations.forEach((r,index)=>{const button=document.createElement('button');button.type='button';button.className='nm-rel-node';button.style.left=points[index][0]+'%';button.style.top=points[index][1]+'%';button.innerHTML=`<b>${r.source}</b><small>${esc(r.type)}</small>`;button.setAttribute('aria-label',`${r.source}与生命路径${r.target}：${r.type}`);button.onclick=()=>{for(const b of canvas.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b===button));detail.querySelector('summary').textContent=`${r.source} → ${r.target} · ${r.type}`;detailBody.innerHTML=`<h3>${esc(r.title)}</h3><p>${esc(r.text)}</p><p>${esc(r.integration)}</p>`;detail.open=true;};canvas.append(button);});if(!relations.length)detail.hidden=true;
+  function accordion(title,ids){const nodes=ids.map(id=>document.getElementById(id)).filter(Boolean);if(!nodes.length)return;const d=document.createElement('details');d.className='nm-details';const label=document.createElement('summary');label.textContent=title;d.append(label);report.append(d);for(const node of nodes)d.append(node);return d;}
+  accordion('核心数字详解',['core']);accordion('数字结构与关系解读',['overview','dynamics','growth']);const frequency=accordion('出生数字分布',['energy']);
+  if(frequency){const energy=document.getElementById('energyDetail'),d=document.createElement('details');d.className='nm-frequency-detail';const label=document.createElement('summary');label.textContent='所选数字解读';d.append(label);energy.before(d);d.append(energy);frequency.addEventListener('click',event=>{if(event.target.closest('[data-digit]'))d.open=true;});}
+  accordion('人生周期与阶段挑战',['cycles']);accordion('个人流年',['year']);accordion('数字图鉴',['atlas']);
+  const disclaimer=report.querySelector(':scope>.disclaimer');if(disclaimer)report.append(disclaimer);
+ }
+ decorate();new MutationObserver(decorate).observe(report,{childList:true});window.scrollTo({top:0,behavior:'instant'});
+}

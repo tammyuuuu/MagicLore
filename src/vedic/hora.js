@@ -1,0 +1,4 @@
+import {normalizeLongitude,splitLongitude} from './zodiac.js';
+import {wholeSignHouses,bhavaForSign} from './houses.js';
+export function horaLongitude(value){const lon=normalizeLongitude(value),index=Math.floor(lon/30),degree=lon-index*30,first=degree<15,solar=index%2===0?first:!first;return (solar?120:90)+(degree%15)*2;}
+export function calculateHora(chart){const longitude=horaLongitude(chart.lagna.siderealLongitude),lagna={...splitLongitude(longitude),siderealLongitude:longitude};return {...chart,varga:'D2',horaMethod:'solar-lunar',lagna,houses:wholeSignHouses(lagna.signIndex),grahas:chart.grahas.map(p=>{const transformed=horaLongitude(p.siderealLongitude),position=splitLongitude(transformed);return {...p,...position,siderealLongitude:transformed,bhava:bhavaForSign(position.signIndex,lagna.signIndex)};})};}

@@ -1,0 +1,34 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {calculateVedicChart} from '../../src/vedic/calculateVedicChart.js';
+import {interpretChart} from '../../src/vedic/interpretation/engine.js';
+
+const input={date:'1999-07-07',time:'06:30:00',place:'Suihua',latitude:46.6395,longitude:126.9951,timezoneOffset:'+08:00'};
+const chart=calculateVedicChart(input,{ayanamsaMode:'lahiri',nodeType:'true'}),whole=interpretChart(chart),reports=Object.values(whole.houses);
+const unit=(house,type,predicate=()=>true)=>whole.houses[house].readingUnits.find(item=>item.type===type&&predicate(item));
+
+test('all twelve Houses generate ReadingUnit arrays',()=>reports.forEach(report=>assert.ok(Array.isArray(report.readingUnits)&&report.readingUnits.length>=2)));
+test('Reading Units follow the learning order',()=>reports.forEach(report=>{assert.equal(report.readingUnits[0].type,'house_rashi');assert.equal(report.readingUnits[1].type,'lord_placement');}));
+test('Rashi Unit reads the calculated House Rashi',()=>reports.forEach(report=>assert.match(report.readingUnits[0].technicalLabel,new RegExp(`${report.house}H · ${report.context.house.rashi}`))));
+test('Lord Placement Unit reads the calculated lord and destination',()=>reports.forEach(report=>assert.equal(report.readingUnits[1].technicalLabel,`${report.house}L ${report.context.house.lord} → ${report.context.house.lordHouse}H`)));
+test('Occupant Units exactly match calculated occupants',()=>reports.forEach(report=>assert.deepEqual(report.readingUnits.filter(item=>item.type==='occupant').map(item=>item.technicalLabel.split(' ')[0]),report.context.house.occupants)));
+test('first House produces the expected five knowledge points',()=>assert.deepEqual(whole.houses[1].readingUnits.map(item=>item.type),['house_rashi','lord_placement','occupant','occupant','conjunction']));
+test('first House occupant Units remain separate for Mercury and Rahu',()=>assert.deepEqual(whole.houses[1].readingUnits.filter(item=>item.type==='occupant').map(item=>item.semanticKey),['occupant_Mercury','occupant_Rahu']));
+test('Conjunction Unit is generated from an existing conjunction rule',()=>{const value=unit(1,'conjunction');assert.match(value.title,/水星与罗睺/);assert.match(value.technicalLabel,/Whole Sign same-house/);});
+test('House without conjunction has no conjunction Unit',()=>assert.equal(unit(2,'conjunction'),undefined));
+test('Drishti becomes independent only for existing Mars or Saturn significance',()=>{assert.ok(unit(4,'incoming_drishti'));assert.equal(unit(2,'incoming_drishti'),undefined);assert.equal(unit(3,'incoming_drishti'),undefined);});
+test('multiple significant Drishti facts merge into one Unit',()=>{const value=unit(7,'incoming_drishti');assert.ok(value);assert.equal(whole.houses[7].readingUnits.filter(item=>item.type==='incoming_drishti').length,1);assert.match(value.title,/火星与土星/);});
+test('Dignity is merged into the corresponding occupant Unit',()=>{const saturn=unit(10,'occupant',item=>item.semanticKey==='occupant_Saturn');assert.match(saturn.technicalLabel,/Debilitation/);assert.equal(whole.houses[10].readingUnits.some(item=>item.type==='dignity'),false);});
+test('each Reading Unit owns non-empty local Evidence',()=>reports.forEach(report=>report.readingUnits.forEach(item=>assert.ok(item.evidence.length&&item.evidence.every(evidence=>evidence.ruleId)))));
+test('Rashi Evidence does not contain occupant facts',()=>reports.forEach(report=>assert.equal(JSON.stringify(unit(report.house,'house_rashi').evidence).includes('所在宫位'),false)));
+test('Occupant Evidence does not contain another occupant',()=>{const mercury=unit(1,'occupant',item=>item.semanticKey==='occupant_Mercury');assert.equal(JSON.stringify(mercury.evidence).includes('Rahu'),false);});
+test('Conjunction Evidence contains only its relation facts',()=>{const text=JSON.stringify(unit(1,'conjunction').evidence);assert.match(text,/Mercury/);assert.match(text,/Rahu/);assert.equal(text.includes('Moon'),false);});
+test('Reading Unit semantic keys are unique within each House',()=>reports.forEach(report=>assert.equal(new Set(report.readingUnits.map(item=>item.semanticKey)).size,report.readingUnits.length)));
+test('node tension stays on its occupant Unit',()=>{assert.match(unit(1,'occupant',item=>item.semanticKey==='occupant_Rahu').tension,/满足|定义/);assert.equal(unit(1,'house_rashi').tension,null);});
+test('Drishti tension stays on the Drishti Unit',()=>{assert.match(unit(7,'incoming_drishti').tension,/火星|土星/);assert.equal(unit(7,'lord_placement').tension,null);});
+test('synthesis references only existing Units and themes',()=>reports.forEach(report=>{assert.deepEqual(report.synthesis.unitIds,report.readingUnits.map(item=>item.id));assert.deepEqual(report.synthesis.themes,report.themes.map(theme=>theme.id));}));
+test('synthesis introduces no new Evidence rule ID',()=>reports.forEach(report=>{const local=new Set(report.readingUnits.flatMap(item=>item.evidence.map(evidence=>evidence.ruleId)));report.synthesis.evidenceRuleIds.forEach(id=>assert.ok(local.has(id)));}));
+test('synthesis expressions remain the existing deduplicated expressions',()=>reports.forEach(report=>assert.deepEqual(report.synthesis.possibleExpressions,report.possibleExpressions.slice(0,5))));
+test('Ayanamsa switching rebuilds Reading Units for all Houses',()=>{const pushya=interpretChart(calculateVedicChart(input,{ayanamsaMode:'pushya_paksha',nodeType:'true'}));reports.forEach(report=>{assert.notEqual(pushya.houses[report.house].readingUnits,report.readingUnits);assert.notEqual(pushya.houses[report.house].readingUnits[0].evidence,report.readingUnits[0].evidence);assert.equal(pushya.houses[report.house].context.chart.ayanamsaMode,'pushya_paksha');});});
+test('rebuilt Reading Units do not retain the old chart context',()=>{const pushyaChart=calculateVedicChart(input,{ayanamsaMode:'pushya_paksha',nodeType:'true'}),pushya=interpretChart(pushyaChart);reports.forEach(report=>assert.notEqual(pushya.houses[report.house].context.chart,report.context.chart));});
+test('sensitive House Unit text avoids deterministic predictions',()=>{const text=[6,7,8,10,12].map(h=>JSON.stringify(whole.houses[h].readingUnits)).join('');for(const word of ['一定生病','必然离婚','注定死亡','事业失败','必有灾难','一定住院','必定监禁'])assert.equal(text.includes(word),false);});

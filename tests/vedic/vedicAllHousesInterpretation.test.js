@@ -1,0 +1,36 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {calculateVedicChart} from '../../src/vedic/calculateVedicChart.js';
+import {buildAllInterpretationContexts} from '../../src/vedic/interpretation/context.js';
+import {interpretChart,interpretHouse} from '../../src/vedic/interpretation/engine.js';
+
+const input={date:'1999-07-07',time:'06:30:00',place:'Suihua',latitude:46.6395,longitude:126.9951,timezoneOffset:'+08:00'};
+const chart=calculateVedicChart(input,{ayanamsaMode:'lahiri',nodeType:'true'});
+const contexts=buildAllInterpretationContexts(chart),whole=interpretChart(chart);
+const reports=Object.values(whole.houses),rules=reports.flatMap(report=>report.triggeredRules);
+
+test('builds exactly twelve independent House contexts',()=>assert.deepEqual(Object.keys(contexts),Array.from({length:12},(_,i)=>String(i+1))));
+test('each context points to its requested House',()=>reports.forEach((report,index)=>assert.equal(report.context.house.house,index+1)));
+test('each House has a calculated Rashi and metadata',()=>reports.forEach(report=>{assert.ok(report.context.house.rashi);assert.ok(report.context.house.rashiMeta.chineseName);}));
+test('each House has its traditional lord',()=>reports.forEach(report=>assert.ok(report.context.house.lord)));
+test('each House lord resolves to a planet record',()=>reports.forEach(report=>assert.equal(report.context.lordPlanet.name,report.context.house.lord)));
+test('each House lord placement resolves to House 1–12',()=>reports.forEach(report=>assert.ok(report.context.house.lordHouse>=1&&report.context.house.lordHouse<=12)));
+test('occupant records exactly match structural occupants',()=>reports.forEach(report=>assert.deepEqual(report.context.occupantPlanets.map(p=>p.name),report.context.house.occupants)));
+test('incoming Drishti is carried from the reading structure',()=>reports.forEach(report=>assert.deepEqual(report.context.incomingAspects,report.context.house.incomingAspects)));
+test('same-house conjunction appears only where structural relation exists',()=>reports.forEach(report=>assert.equal(Boolean(report.context.conjunction),report.context.reading.relations.conjunctions.some(c=>c.house===report.house))));
+test('generic House lord-placement rule is always the first priority',()=>reports.slice(1).forEach(report=>assert.equal(report.triggeredRules[0].priority,1)));
+test('occupant rules have priority two',()=>rules.filter(rule=>rule.type==='occupant').forEach(rule=>assert.equal(rule.priority,2)));
+test('conjunction rules have priority three',()=>rules.filter(rule=>rule.type==='conjunction').forEach(rule=>assert.equal(rule.priority,3)));
+test('Rashi expression rules have priority four',()=>rules.filter(rule=>rule.type==='rashi_expression').forEach(rule=>assert.equal(rule.priority,4)));
+test('dignity modifiers have priority five',()=>rules.filter(rule=>rule.type==='dignity_modifier').forEach(rule=>assert.equal(rule.priority,5)));
+test('incoming Drishti rules have priority six',()=>rules.filter(rule=>rule.type==='incoming_drishti').forEach(rule=>assert.equal(rule.priority,6)));
+test('every generated rule has structured evidence',()=>rules.forEach(rule=>{assert.ok(rule.output.evidence.items.length);assert.ok(rule.output.evidence.chain.length);assert.ok(rule.output.evidence.rule);}));
+test('every generated rule retains a source level',()=>rules.forEach(rule=>assert.match(rule.sourceLevel,/^[BC]$/)));
+test('every House produces between two and four themes',()=>reports.forEach(report=>assert.ok(report.themes.length>=2&&report.themes.length<=4)));
+test('every House produces between three and six possible expressions',()=>reports.forEach(report=>assert.ok(report.possibleExpressions.length>=3&&report.possibleExpressions.length<=6)));
+test('themes are semantically unique inside each House',()=>reports.forEach(report=>assert.equal(new Set(report.themes.map(theme=>theme.id)).size,report.themes.length)));
+test('unsupported conjunction combinations do not invent a combined conclusion',()=>rules.filter(rule=>rule.type==='conjunction').forEach(rule=>assert.match(rule.output.traditionalMeaning,/不进一步创造组合结论|共同参与/)));
+test('tension blocks only exist with explicit supporting evidence',()=>reports.forEach(report=>report.tensions.forEach(item=>assert.ok(item.evidence.length))));
+test('sensitive Houses avoid deterministic high-risk claims',()=>{const text=[6,7,8,10,12].map(h=>JSON.stringify(whole.houses[h])).join('');for(const word of ['必然离婚','一定生病','注定死亡','必有灾难','保证发财'])assert.equal(text.includes(word),false);});
+test('Ayanamsa switch rebuilds all twelve House contexts',()=>{const pushya=interpretChart(calculateVedicChart(input,{ayanamsaMode:'pushya_paksha',nodeType:'true'}));assert.equal(Object.keys(pushya.houses).length,12);reports.forEach(report=>assert.notEqual(pushya.houses[report.house].context,report.context));});
+test('a newly interpreted House never retains a previous chart object',()=>{const copy=structuredClone(chart),fresh=interpretHouse(copy,12);assert.equal(fresh.context.chart,copy);assert.notEqual(fresh.context.chart,chart);});

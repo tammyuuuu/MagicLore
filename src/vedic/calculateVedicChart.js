@@ -1,0 +1,12 @@
+import {localToUtc,julianTimes,tropicalLongitude,isRetrograde,tropicalAscendant} from './astronomy.js';
+import {getAyanamsa,AYANAMSA_MODES} from './ayanamsa.js';import {nodePair} from './nodes.js';import {splitLongitude,normalizeLongitude} from './zodiac.js';import {getNakshatra} from './nakshatra.js';import {wholeSignHouses,bhavaForSign} from './houses.js';import {dignityFor} from './dignities.js';import {vimshottariMahadasha} from './dasha.js';import {validateChart} from './validation.js';
+const PLANETS=['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn'];
+export function calculateVedicChart(input,options={}){
+  const nodeType=options.nodeType==='mean'?'mean':'true',ayanamsaMode=options.ayanamsaMode||AYANAMSA_MODES.LAHIRI,utc=localToUtc(input.date,input.time,input.timezoneOffset),times=julianTimes(utc),ayanamsaResult=getAyanamsa(ayanamsaMode,times.jde),ayanamsa=ayanamsaResult.value;
+  const tropicalAsc=tropicalAscendant(utc,times.jd,input.latitude,input.longitude),siderealAsc=normalizeLongitude(tropicalAsc-ayanamsa),lagna=splitLongitude(siderealAsc),houses=wholeSignHouses(lagna.signIndex);
+  const grahas=PLANETS.map(name=>{const tropical=tropicalLongitude(name,utc),sidereal=normalizeLongitude(tropical-ayanamsa),position=splitLongitude(sidereal);return {name,tropicalLongitude:tropical,siderealLongitude:sidereal,...position,bhava:bhavaForSign(position.signIndex,lagna.signIndex),nakshatra:getNakshatra(sidereal),retrograde:isRetrograde(name,utc),dignity:dignityFor(name,position.signIndex)};});
+  const nodes=nodePair(times.jde,nodeType);for(const [name,tropical] of [['Rahu',nodes.rahu],['Ketu',nodes.ketu]]){const sidereal=normalizeLongitude(tropical-ayanamsa),position=splitLongitude(sidereal);grahas.push({name,tropicalLongitude:tropical,siderealLongitude:sidereal,...position,bhava:bhavaForSign(position.signIndex,lagna.signIndex),nakshatra:getNakshatra(sidereal),retrograde:true,dignity:null});}
+  const dasha=vimshottariMahadasha(grahas.find(x=>x.name==='Moon').siderealLongitude,utc);
+  const chart={input:{...input,nodeType,ayanamsaMode},utc,times:{jd:times.jd,jde:times.jde,deltaTSeconds:times.deltaTSeconds},ayanamsa,ayanamsaMode,ayanamsaLabel:ayanamsaResult.label,lagna:{tropicalLongitude:tropicalAsc,siderealLongitude:siderealAsc,...lagna},houses,grahas,dasha,versions:{astronomy:'astronomy-engine 2.1.19',ayanamsa:ayanamsaResult.label}};
+  chart.validation=validateChart(chart);return chart;
+}

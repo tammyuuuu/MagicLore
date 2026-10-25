@@ -1,0 +1,4 @@
+import {normalizeLongitude,splitLongitude} from './zodiac.js';
+import {wholeSignHouses,bhavaForSign} from './houses.js';
+export function dasamsaLongitude(value){const lon=normalizeLongitude(value),sign=Math.floor(lon/30),degree=lon-sign*30,part=Math.floor(degree/3),start=sign+(sign%2===0?0:8);return normalizeLongitude((start+part)*30+(degree-part*3)*10);}
+export function calculateDasamsa(chart){const longitude=dasamsaLongitude(chart.lagna.siderealLongitude),lagna={...splitLongitude(longitude),siderealLongitude:longitude};return {...chart,varga:'D10',lagna,houses:wholeSignHouses(lagna.signIndex),grahas:chart.grahas.map(p=>{const transformed=dasamsaLongitude(p.siderealLongitude),position=splitLongitude(transformed);return {...p,...position,siderealLongitude:transformed,bhava:bhavaForSign(position.signIndex,lagna.signIndex)};})};}

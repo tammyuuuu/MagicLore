@@ -1,0 +1,2 @@
+export const DEFAULT_ASPECT_ORBS={0:8,60:4,90:6,120:6,180:8};
+export function aspectOrbs(input={}){const result={...DEFAULT_ASPECT_ORBS};if(input.aspectOrbs!==undefined){if(!input.aspectOrbs||typeof input.aspectOrbs!=='object'||Array.isArray(input.aspectOrbs))throw Error('容许度设置无效。');for(const [angle,value] of Object.entries(input.aspectOrbs)){if(!(angle in result)||typeof value!=='number'||!Number.isFinite(value)||value<0||value>15)throw Error('容许度应在 0–15° 之间。');result[angle]=value;}}return result;}

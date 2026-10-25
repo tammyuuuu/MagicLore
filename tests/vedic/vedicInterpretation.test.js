@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {calculateVedicChart} from '../../src/vedic/calculateVedicChart.js';
+import {buildInterpretationContext} from '../../src/vedic/interpretation/context.js';
+import {interpretChart,interpretHouse,semanticDedup} from '../../src/vedic/interpretation/engine.js';
+
+const input={date:'1999-07-07',time:'06:30:00',place:'Suihua',latitude:46.6395,longitude:126.9951,timezoneOffset:'+08:00'};
+const chart=calculateVedicChart(input,{ayanamsaMode:'lahiri',nodeType:'true'}),result=interpretHouse(chart,1);
+const rule=id=>result.triggeredRules.find(item=>item.id===id);
+
+test('interpretation is generated for every valid house',()=>{for(let house=1;house<=12;house++)assert.equal(interpretHouse(chart,house).house,house);assert.equal(interpretHouse(chart,0),null);assert.equal(interpretHouse(chart,13),null);});
+test('first-house base rule always triggers for the supported house',()=>{assert.ok(rule('H1_BASE'));assert.equal(rule('H1_BASE').type,'house');});
+test('Cancer Rashi rule triggers from calculated first-house Rashi',()=>{assert.equal(result.context.house.rashi,'Cancer');assert.ok(rule('H1_CANCER'));});
+test('first-house lord is identified from the traditional ruler map',()=>{assert.equal(result.context.house.lord,'Moon');assert.equal(result.context.lordPlanet.name,'Moon');});
+test('first lord placement rule targets the calculated ninth house',()=>{assert.equal(result.context.house.lordHouse,9);assert.ok(rule('H1L_IN_H9'));});
+test('occupant rules are driven by calculated first-house occupants',()=>{assert.deepEqual(result.context.house.occupants,['Mercury','Rahu']);assert.ok(rule('MERCURY_IN_H1'));assert.ok(rule('RAHU_IN_H1'));});
+test('Mercury in first house has a dedicated traceable rule',()=>{assert.equal(rule('MERCURY_IN_H1').output.evidence.items[0].value,'Mercury');});
+test('Rahu in first house has a cautious source-level C rule',()=>{assert.equal(rule('RAHU_IN_H1').sourceLevel,'C');});
+test('Mercury and Rahu same-house relation triggers only the combination rule',()=>{assert.equal(result.context.conjunction.type,'same_house');assert.ok(rule('MERCURY_RAHU_SAME_HOUSE'));});
+test('every triggered interpretation binds structured evidence',()=>{for(const item of result.triggeredRules){assert.ok(item.output.evidence.items.length);assert.ok(item.output.evidence.chain.length);assert.ok(item.output.evidence.rule);}});
+test('every triggered rule has a stable internal ID',()=>{assert.deepEqual(result.triggeredRules.map(item=>item.id),['H1_BASE','H1_CANCER','H1L_IN_H9','MERCURY_IN_H1','RAHU_IN_H1','MERCURY_RAHU_SAME_HOUSE']);});
+test('every triggered rule declares source level B or C',()=>{for(const item of result.triggeredRules)assert.match(item.sourceLevel,/^[BC]$/);});
+test('fact, traditional meaning and possible expression remain distinct fields',()=>{for(const item of result.triggeredRules){assert.equal(typeof item.output.fact,'string');assert.equal(typeof item.output.traditionalMeaning,'string');assert.ok(Array.isArray(item.output.possibleExpressions));}});
+test('triggered rules and synthesis produce semantic themes',()=>{assert.ok(result.triggeredRules.flatMap(item=>item.themes).includes('identity'));assert.deepEqual(result.themes.map(item=>item.id),['THEME_IDENTITY_MEANING','THEME_THINKING_IDENTITY','THEME_EXPANDING_IDENTITY']);});
+test('semantic dedup uses semantic keys instead of string equality',()=>{const items=[{semanticKey:'thinking',text:'A'},{semanticKey:'thinking',text:'B'},{semanticKey:'belief',text:'A'}];assert.deepEqual(semanticDedup(items),[items[0],items[2]]);assert.ok(result.possibleExpressions.length>=3&&result.possibleExpressions.length<=5);});
+test('Ayanamsa switch rebuilds interpretation context from the new chart',()=>{const pushyaChart=calculateVedicChart(input,{ayanamsaMode:'pushya_paksha',nodeType:'true'}),pushya=interpretChart(pushyaChart);assert.equal(pushya.chartContext.ayanamsaMode,'pushya_paksha');assert.notEqual(pushya.chartContext.ayanamsa,interpretChart(chart).chartContext.ayanamsa);assert.equal(pushya.house1.context.lordPlanet.pada,4);});
+test('new interpretation retains no reference to an old chart or context',()=>{const pushyaChart=calculateVedicChart(input,{ayanamsaMode:'pushya_paksha',nodeType:'true'}),lahiri=interpretChart(chart),pushya=interpretChart(pushyaChart);assert.equal(pushya.house1.context.chart,pushyaChart);assert.notEqual(pushya.house1.context.chart,lahiri.house1.context.chart);assert.notEqual(pushya.house1.context,lahiri.house1.context);});
+test('interpretChart exposes interpretations for all twelve houses',()=>{const whole=interpretChart(chart);assert.deepEqual(Object.keys(whole.houses),Array.from({length:12},(_,index)=>String(index+1)));});
+test('Rahu rule contains no absolute or pathological conclusion',()=>{const text=JSON.stringify(rule('RAHU_IN_H1').output);for(const forbidden of ['一定','必然','注定','精神问题','前世业力','灵魂债务'])assert.equal(text.includes(forbidden),false);assert.match(text,/可能/);});
+test('no matching rule produces no invented interpretation text',()=>{const altered=structuredClone(chart);altered.houses[0].sign='Leo';altered.grahas=altered.grahas.map(item=>item.bhava===1?{...item,bhava:2}:item);const unmatched=interpretHouse(altered,1);assert.deepEqual(unmatched.triggeredRules.map(item=>item.id),['H1_BASE']);assert.deepEqual(unmatched.themes,[]);assert.deepEqual(unmatched.possibleExpressions,[]);});

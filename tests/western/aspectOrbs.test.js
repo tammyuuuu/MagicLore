@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {calculateWesternChart} from '../../src/western/calculateWesternChart.js';
+import {DEFAULT_ASPECT_ORBS,aspectOrbs} from '../../src/western/aspectOrbs.js';
+const input=JSON.parse(fs.readFileSync(new URL('./swiss-fixtures.json',import.meta.url),'utf8'))[0];
+test('未设置容许度与显式默认值完全一致',()=>{assert.deepEqual(calculateWesternChart(input),calculateWesternChart(input));assert.deepEqual(calculateWesternChart(input).aspects,calculateWesternChart({...input,aspectOrbs:DEFAULT_ASPECT_ORBS}).aspects);});
+test('容许度仅改变相位筛选，不改变星体、宫头和四轴',()=>{const original=calculateWesternChart(input),tight=calculateWesternChart({...input,aspectOrbs:{0:0,60:0,90:0,120:0,180:0}}),wide=calculateWesternChart({...input,aspectOrbs:{0:15,60:15,90:15,120:15,180:15}});assert.deepEqual(tight.planets,original.planets);assert.deepEqual(tight.cusps,original.cusps);assert.equal(tight.asc,original.asc);assert.equal(tight.mc,original.mc);assert.equal(tight.aspects.length,0);assert.ok(wide.aspects.length>original.aspects.length);});
+test('非法容许度拒绝计算，不静默替换',()=>{for(const v of [-1,16,NaN,'3'])assert.throws(()=>aspectOrbs({aspectOrbs:{0:v}}));assert.throws(()=>calculateWesternChart({...input,transitOrb:16}));});
+import {transitDuration,transitThemes} from '../../src/western/transitThemes.js';
+import {tropicalLongitude} from '../../src/vedic/astronomy.js';
+test('行运容许度同时控制入选范围和持续区间，缺省仍为3度',()=>{const utc='2026-10-06T04:00:00.000Z',longitude=tropicalLongitude('Moon',new Date(utc)),aspect={planet:'Moon',target:'MC',angle:0},natal={mc:longitude};const defaults=transitDuration(aspect,natal,{utc,input:{offset:'+08:00'}}),explicit=transitDuration(aspect,natal,{utc,input:{offset:'+08:00',transitOrb:3}}),tight=transitDuration(aspect,natal,{utc,input:{offset:'+08:00',transitOrb:1}});assert.deepEqual(defaults,explicit);assert.ok(Date.parse(tight.end)-Date.parse(tight.start)<Date.parse(defaults.end)-Date.parse(defaults.start));const birth=calculateWesternChart(input),current=calculateWesternChart({...input,date:'2026-10-06',transitOrb:0});assert.equal(transitThemes(birth,current,{mode:'unified'}).length,0);});

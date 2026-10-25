@@ -1,0 +1,16 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createDetailReaderState,previousHouse,nextHouse} from '../../src/vedic/ui/detailReaderState.js';
+
+test('Reader opens the requested House',()=>{const reader=createDetailReaderState();assert.deepEqual(reader.open({type:'house',id:1},900,'v1').history,[{type:'house',id:1}]);});
+test('House entries from any UI source resolve to the same Reader state shape',()=>{const first=createDetailReaderState(),second=createDetailReaderState();assert.deepEqual(first.open({type:'house',id:9},100,'v1').history,second.open({type:'house',id:9},500,'v1').history);});
+test('Planet entries from any UI source resolve to the same Reader state shape',()=>{const first=createDetailReaderState(),second=createDetailReaderState();assert.deepEqual(first.open({type:'planet',id:'Moon'},100,'v1').history,second.open({type:'planet',id:'Moon'},500,'v1').history);});
+test('Reader navigation builds House and Planet history',()=>{const reader=createDetailReaderState();reader.open({type:'house',id:1},800,'v1');reader.navigate({type:'planet',id:'Moon'});reader.navigate({type:'house',id:9});assert.deepEqual(reader.snapshot().history,[{type:'house',id:1},{type:'planet',id:'Moon'},{type:'house',id:9}]);});
+test('Reader back removes only the current history entry',()=>{const reader=createDetailReaderState();reader.open({type:'house',id:1},800,'v1');reader.navigate({type:'planet',id:'Moon'});assert.deepEqual(reader.back().history,[{type:'house',id:1}]);});
+test('Reader back at root keeps the root entry',()=>{const reader=createDetailReaderState();reader.open({type:'house',id:1},800,'v1');assert.deepEqual(reader.back().history,[{type:'house',id:1}]);});
+test('Reader close clears history and returns saved scroll position',()=>{const reader=createDetailReaderState();reader.open({type:'house',id:1},1234,'v1');reader.navigate({type:'planet',id:'Moon'});const closed=reader.close();assert.equal(closed.savedScrollY,1234);assert.equal(closed.state.open,false);assert.deepEqual(closed.state.history,[]);});
+test('opening a second Reader session replaces earlier history and scroll',()=>{const reader=createDetailReaderState();reader.open({type:'house',id:1},100,'v1');reader.navigate({type:'planet',id:'Moon'});reader.close();const next=reader.open({type:'planet',id:'Saturn'},700,'v1');assert.deepEqual(next.history,[{type:'planet',id:'Saturn'}]);assert.equal(next.savedScrollY,700);});
+test('chart refresh replaces Reader context version without retaining the old one',()=>{const reader=createDetailReaderState();reader.open({type:'house',id:1},100,'lahiri:1');const refreshed=reader.refreshContext('pushya:2');assert.equal(refreshed.contextVersion,'pushya:2');assert.equal(refreshed.contextVersion.includes('lahiri'),false);});
+test('state snapshots are isolated from external history mutation',()=>{const reader=createDetailReaderState();reader.open({type:'house',id:1},100,'v1');const snapshot=reader.snapshot();snapshot.history[0].id=12;assert.equal(reader.snapshot().history[0].id,1);});
+test('previous House navigation wraps from one to twelve',()=>{assert.equal(previousHouse(1),12);assert.equal(previousHouse(7),6);});
+test('next House navigation wraps from twelve to one',()=>{assert.equal(nextHouse(12),1);assert.equal(nextHouse(7),8);});

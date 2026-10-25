@@ -1,0 +1,10 @@
+/* Shared typography for the shell and every chart workspace.
+   Keep professional layouts' sizes and line heights; unify only the typeface. */
+:root{--ui-font:"Songti SC","STSong","SimSun","Noto Serif CJK SC",serif;--heading-font:var(--ui-font);--mono-font:var(--ui-font)}
+html body.ml-app.ml-app,html body.ml-module.ml-module,
+html body.ml-app.ml-app :where(div,section,article,aside,header,footer,nav,main,form,p,span,h1,h2,h3,h4,h5,h6,label,a,button,input,select,textarea,summary,details,th,td,caption,small,strong,b,i,em,li,ul,ol,dl,dt,dd,legend,fieldset,output,mark),
+html body.ml-module.ml-module :where(div,section,article,aside,header,footer,nav,main,form,p,span,h1,h2,h3,h4,h5,h6,label,a,button,input,select,textarea,summary,details,th,td,caption,small,strong,b,i,em,li,ul,ol,dl,dt,dd,legend,fieldset,output,mark){font-family:var(--ui-font)!important}
+html body.ml-app.ml-app :where(h1,h2,h3,h4,h5,h6),html body.ml-module.ml-module :where(h1,h2,h3,h4,h5,h6){font-weight:600}
+html body.ml-app.ml-app :where(pre,code,kbd,samp),html body.ml-module.ml-module :where(pre,code,kbd,samp){font-family:var(--mono-font)!important}
+/* Numeric UI uses the same face with stable, aligned figures. Chart symbols retain their renderer's fallback for specialized glyphs. */
+:is(.pf-wheel,.pf-birth-wheels,.nm-core,.nm-graph,.fortune-card,.reference-plate,.vm-planet-panel,.mw-preferences){font-variant-numeric:tabular-nums}
