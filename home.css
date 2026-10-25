@@ -35,3 +35,5 @@ body.ml-shell.ml-me{background:#f7f8fd}
 .me-backup{display:grid;gap:14px;width:100%;max-width:300px;margin:0 auto}.me-button{width:100%;min-height:54px;border-radius:16px;border:1px solid #ddd8ef;display:flex;align-items:center;justify-content:center;gap:14px;font-size:15px;letter-spacing:2px}.me-button svg{width:20px;height:20px}.me-export{background:#6559b5;color:#fff;border-color:#6559b5}.me-import{background:#eaf0fa;color:#5b5c91;border-color:#dce4f2}
 .me-footer{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-height:0}.ml-main .me-footer p{font:11px/1.7 var(--ui-font);letter-spacing:1px;color:#8b84a7;margin:0}
 @media(max-height:700px){.me-page{gap:14px}.me-brand{padding-top:0}.me-sigil{width:44px;height:44px;margin-bottom:12px}.ml-main .me-brand h1{font-size:27px}.me-button{min-height:48px}}
+
+body.ml-shell.ml-cool-page{--paper:#f7f8fd;background:#f7f8fd}
