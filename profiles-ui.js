@@ -11,7 +11,7 @@ export function mountProfiles(main,{notify,backup,initialView='people',managemen
   let view=initialView,query='';
   function backButton(){const button=main.querySelector('[data-back]');if(button)button.onclick=render;}
   function render(){
-    main.innerHTML=management?`<a class="ml-back" href="#settings">← 返回我的</a><div class="pf-page-head"><h1>${view==='trash'?'最近删除':'旧记录管理'}</h1></div><label class="pf-search">搜索记录<input id="personSearch" aria-label="搜索档案" type="search" placeholder="名称、出生日期或地点" value="${esc(query)}"></label><p id="pfCount" class="pf-caption" role="status"></p><div id="profileList"></div>`:`<div class="pf-page-head"><h1>我的档案</h1><button class="ml-primary pf-add" id="newProfile" aria-label="添加人物档案">＋</button></div><label class="pf-search"><span class="ml-file">搜索档案</span><input id="personSearch" aria-label="搜索档案" type="search" placeholder="搜索名称、出生日期或地点" value="${esc(query)}"></label><div id="profileList"></div>`;
+    main.innerHTML=management?`<a class="ml-back" href="#settings">← 返回我的</a><div class="pf-page-head"><h1>${view==='trash'?'最近删除':'旧记录管理'}</h1></div><label class="pf-search">搜索记录<input id="personSearch" aria-label="搜索档案" type="search" placeholder="名称、出生日期或地点" value="${esc(query)}"></label><p id="pfCount" class="pf-caption" role="status"></p><div id="profileList"></div>`:`<div class="pf-list-top"><input id="personSearch" aria-label="搜索档案" type="search" placeholder="搜索名称、出生日期或地点" value="${esc(query)}"><button class="pf-add" id="newProfile" aria-label="添加人物档案"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></button></div><div id="profileList"></div>`;
     main.querySelector('#newProfile')?.addEventListener('click',()=>edit());
     main.querySelector('#personSearch').oninput=e=>{query=e.target.value;drawList();};drawList();
   }
@@ -20,19 +20,47 @@ export function mountProfiles(main,{notify,backup,initialView='people',managemen
     const list=main.querySelector('#profileList');list.replaceChildren();let data;
     try{data=readPeople();}catch(error){list.innerHTML=`<p class="ml-warning">${esc(error.message)} 原始数据未清空，请先导出备份。</p>`;return;}
     const legacy=legacyRecords(),hidden=new Set(data.hiddenLegacy);let count=0;
+    if(view==='people'&&!management){drawCompactList(list,data,legacy,hidden);return;}
+
     if(view!=='legacy')for(const p of data.records.filter(p=>view==='trash'?!!p.deletedAt:!p.deletedAt)){
       if(!matches(`${p.name} ${dateText(p)} ${placeText(p)}`))continue;count++;
       const card=document.createElement('article');card.className='ml-profile';card.innerHTML=view==='people'?`<button class="pf-person" data-detail><span><b>${esc(p.name)}</b><small>${esc(dateText(p))} · ${esc(timeText(p))}</small><small>${esc(placeText(p))}</small></span><span aria-hidden="true">›</span></button>`:`<h2>${esc(p.name)}</h2><p>${esc(dateText(p))} · ${esc(timeText(p))}</p><div class="ml-tools"><button class="ml-secondary" data-detail>查看资料</button><button class="ml-secondary" data-restore>恢复档案</button></div>`;
       card.querySelector('[data-detail]').onclick=()=>detail(p.id);card.querySelector('[data-edit]')?.addEventListener('click',()=>edit(p.id));card.querySelector('[data-select]')?.addEventListener('click',()=>safe(()=>{selectPerson(p.id);drawList();notify('已选择：'+p.name);}));card.querySelector('[data-restore]')?.addEventListener('click',()=>safe(()=>{setPersonDeleted(p.id,false);render();notify('档案已恢复。');}));list.append(card);
     }
-    if(view!=='people')for(const item of legacy.rows.filter(x=>view==='trash'?hidden.has(x.key):!hidden.has(x.key))){
+    for(const item of legacy.rows.filter(x=>view==='people'?x.type==='relationship'&&!hidden.has(x.key):view==='trash'?hidden.has(x.key):!hidden.has(x.key))){
       const r=item.record,p=personFromLegacy(item),title=r.title||r.name||r.input?.place||item.label+'旧命盘';if(!matches(`${title} ${p.birth.date.value||''} ${r.isoA||''} ${r.isoB||''} ${placeText(p)}`))continue;count++;
-      const card=document.createElement('article');card.className='ml-profile';card.innerHTML=`<div class="ml-eyebrow">${esc(item.label)} · 原记录保留</div><h2>${esc(title)}</h2><p>${esc(item.type==='relationship'?`${r.isoA||'未知'} × ${r.isoB||'未知'}`:dateText(p)+' · '+timeText(p))}</p><div class="ml-tools"><button class="ml-secondary" data-old>查看旧记录</button>${view==='trash'?'<button class="ml-secondary" data-restore>恢复显示</button>':''}</div>`;card.querySelector('[data-old]').onclick=()=>legacyDetail(item);card.querySelector('[data-restore]')?.addEventListener('click',()=>safe(()=>{hideLegacy(item.key,false);render();}));list.append(card);
+      const card=document.createElement('article');card.className='ml-profile';card.innerHTML=`<div class="ml-eyebrow">${esc(item.label)}${item.type==='relationship'?'':' · 原记录保留'}</div><h2>${esc(title)}</h2><p>${esc(item.type==='relationship'?`${r.isoA||'未知'} × ${r.isoB||'未知'}`:dateText(p)+' · '+timeText(p))}</p><div class="ml-tools"><button class="ml-secondary" data-old>${item.type==='relationship'?'查看合盘':'查看旧记录'}</button>${view==='trash'?'<button class="ml-secondary" data-restore>恢复显示</button>':''}</div>`;card.querySelector('[data-old]').onclick=()=>legacyDetail(item);card.querySelector('[data-restore]')?.addEventListener('click',()=>safe(()=>{hideLegacy(item.key,false);render();}));list.append(card);
     }
     if(management)for(const error of legacy.errors)list.insertAdjacentHTML('beforeend',`<p class="ml-warning">${esc(error.message)} 原始内容仍可导出。</p>`);
     if(main.querySelector('#pfCount'))main.querySelector('#pfCount').textContent=`${count} 份${view==='legacy'?'旧记录':view==='trash'?'可恢复记录':'人物档案'}`;
     if(!count)list.insertAdjacentHTML('beforeend',`<p class="pf-empty">${query.trim()?'没有匹配的档案':view==='people'?'暂无人物档案，点击右上角 ＋ 添加。':'暂无记录'}</p>`);
 
+  }
+  function drawCompactList(list,data,legacy,hidden){
+    const rows=[];
+    for(const p of data.records.filter(p=>!p.deletedAt))rows.push({key:'person:'+p.id,name:p.name,info:`${dateText(p)} ${timeText(p)} · ${placeText(p)}`,open:()=>detail(p.id)});
+    for(const item of legacy.rows.filter(x=>x.type==='relationship'&&!hidden.has(x.key))){
+      const r=item.record,index=legacy.rows.filter(x=>x.type==='relationship').findIndex(x=>x.key===item.key);
+      rows.push({key:'pair:'+(r.id||item.key),name:r.title||r.name||'关系合盘',info:`${r.isoA||'日期未知'} × ${r.isoB||'日期未知'}`,open:()=>{location.href=`destiny_book_web.html?mlStore=relationship&mlArchive=${index}&mlRef=${encodeURIComponent(item.ref)}#match`;}});
+    }
+    let stored=[];try{const raw=JSON.parse(localStorage.getItem('magiclore_profile_order_v1')||'[]');if(Array.isArray(raw))stored=raw.filter(k=>typeof k==='string');}catch{notify('排序记录无法读取，档案资料未受影响。');}
+    const ordered=[...new Set([...stored,...rows.map(r=>r.key)])].filter(k=>rows.some(r=>r.key===k));
+    const visible=ordered.map(key=>rows.find(r=>r.key===key)).filter(r=>matches(r.name+' '+r.info));
+    list.classList.add('pf-compact-list');
+    for(const row of visible){
+      const card=document.createElement('article');card.className='pf-list-card';card.dataset.orderKey=row.key;
+      card.innerHTML=`<button class="pf-list-open"><b class="pf-list-name">${esc(row.name)}</b><small>${esc(row.info)}</small></button><button class="pf-drag" aria-label="长按拖动排序：${esc(row.name)}" title="长按拖动；也可使用上下方向键"><svg viewBox="0 0 18 24" aria-hidden="true" fill="currentColor"><circle cx="6" cy="6" r="1.4"/><circle cx="12" cy="6" r="1.4"/><circle cx="6" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="6" cy="18" r="1.4"/><circle cx="12" cy="18" r="1.4"/></svg></button>`;
+      card.querySelector('.pf-list-open').onclick=row.open;list.append(card);
+      const handle=card.querySelector('.pf-drag');let timer=null,dragging=false,startX=0,startY=0,dropTarget=null,dropAfter=false;
+      const persist=()=>{const keys=[...list.querySelectorAll('[data-order-key]')].map(c=>c.dataset.orderKey),visibleKeys=new Set(keys);let i=0;const next=ordered.map(k=>visibleKeys.has(k)?keys[i++]:k);try{localStorage.setItem('magiclore_profile_order_v1',JSON.stringify(next));ordered.splice(0,ordered.length,...next);}catch{notify('排序未能保存，请检查设备存储空间。');drawList();}};
+      handle.onpointerdown=e=>{if(e.button!==0)return;startX=e.clientX;startY=e.clientY;handle.setPointerCapture(e.pointerId);timer=setTimeout(()=>{dragging=true;card.classList.add('pf-dragging');handle.setAttribute('aria-pressed','true');},180);};
+      handle.onpointermove=e=>{if(!dragging){if(Math.hypot(e.clientX-startX,e.clientY-startY)>20)clearTimeout(timer);return;}e.preventDefault();const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('.pf-list-card');list.querySelectorAll('.pf-drop').forEach(c=>c.classList.remove('pf-drop'));dropTarget=target&&target!==card&&target.parentElement===list?target:null;if(dropTarget){dropAfter=e.clientY>=dropTarget.getBoundingClientRect().top+dropTarget.getBoundingClientRect().height/2;dropTarget.classList.add('pf-drop');}if(e.clientY<80)window.scrollBy(0,-12);else if(e.clientY>window.innerHeight-115)window.scrollBy(0,12);};
+      handle.onpointerup=()=>{clearTimeout(timer);if(dragging){dragging=false;card.classList.remove('pf-dragging');handle.setAttribute('aria-pressed','false');if(dropTarget?.isConnected){list.insertBefore(card,dropAfter?dropTarget.nextSibling:dropTarget);dropTarget.classList.remove('pf-drop');}dropTarget=null;persist();}};
+      handle.onpointercancel=()=>{clearTimeout(timer);if(dragging){dragging=false;drawList();}};
+      handle.oncontextmenu=e=>e.preventDefault();
+      handle.onkeydown=e=>{if(!['ArrowUp','ArrowDown'].includes(e.key))return;e.preventDefault();if(e.key==='ArrowUp'&&card.previousElementSibling)list.insertBefore(card,card.previousElementSibling);else if(e.key==='ArrowDown'&&card.nextElementSibling)list.insertBefore(card.nextElementSibling,card);persist();handle.focus();};
+    }
+    if(!visible.length)list.innerHTML=`<p class="pf-empty">${query.trim()?'没有匹配的档案':'暂无档案，点击右上角 ＋ 添加。'}</p>`;
   }
   function safe(action){try{action();}catch(error){notify(error.message);}}
   function factsHtml(p){const b=p.birth;let resolution;try{resolution=resolveWallTime(b.date.gregorian,b.time,b.zone);if(b.date.calendar==='lunar'&&!b.date.gregorian)resolution={status:'unconverted',message:'农历原值已保留，尚无可靠的公历日期；排盘前请核对转换。',candidates:[]};}catch(error){resolution={status:'error',message:error.message};}

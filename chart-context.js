@@ -1,8 +1,9 @@
 import {CHART_SYSTEMS,chartURL,chartProfileInput} from './chart-profile.js';
-import {listPeople,getPerson,getSelectedPerson,selectPerson} from './person-store.js';
+import {listPeople,ensureDefaultPerson,ensureDefaultFemalePerson,getPerson,getSelectedPerson,selectPerson} from './person-store.js';
 import {homeIcon} from './home-icons.js';
 export async function installChartContext({header,nav}){
  const system=CHART_SYSTEMS.find(r=>location.pathname.endsWith(r[1]))?.[0];if(!system)return;
+ ensureDefaultPerson();ensureDefaultFemalePerson();
  document.body.classList.add('mc-enabled');
  const transitIntro=document.querySelector('.library-transit-form')?.closest('section')?.querySelector('h1+p');if(transitIntro)transitIntro.textContent='使用当前人物档案作为本命，选择行运时刻。';
  const relocationIntro=document.querySelector('.library-relocation-page h1+p');if(relocationIntro)relocationIntro.textContent='使用当前人物档案，选择目的地对照四轴与宫位变化。';
@@ -27,7 +28,7 @@ export async function installChartContext({header,nav}){
    const api=system==='bazi'?window.magicLoreBazi:window.magiccatAstrology;
    const input=chartProfileInput(id,system,api?.getInput?.()||{});
    if(system==='bazi'){if(!api)throw Error('排盘模块尚未就绪，请重选档案重试。');api.restore(input);}
-   else if(system==='life'){document.querySelector('[data-view="life"]')?.click();document.getElementById('birthDate').value=input.date;document.getElementById('birthForm').requestSubmit();location.hash='life';}
+   else if(system==='life'){document.querySelector('[data-view="life"]')?.click();document.getElementById('birthDate').value=input.date;document.getElementById('birthForm').requestSubmit();if(location.hash!=='#match')location.hash='life';}
    else{if(!api)throw Error('排盘模块尚未就绪，请重选档案重试。');const offsetField=document.getElementById(system==='western'?'wOffset':'timezone'),offsetValue=system==='western'?input.offset:input.timezoneOffset;if(offsetField?.tagName==='SELECT'&&![...offsetField.options].some(o=>o.value===offsetValue))offsetField.append(new Option('UTC'+offsetValue,offsetValue));if(api.openNatal)api.openNatal(input);else api.restore(input);location.hash='report';window.dispatchEvent(new Event('magiccat-place-restored'));}
    document.body.dataset.mcProfile='ready';updateMode();
    for(const select of document.querySelectorAll('.library-transit-archive select,.relocation-form>label>select'))select.value='';

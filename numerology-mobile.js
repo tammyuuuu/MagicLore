@@ -1,3 +1,4 @@
+import {listPeople} from './person-store.js';
 // Compact numerology presentation; calculations and interpretation copy stay in their original modules.
 export function installNumerologyMobile(){
  if(!location.pathname.endsWith('destiny_book_web.html'))return;
@@ -5,6 +6,15 @@ export function installNumerologyMobile(){
  const back=document.createElement('a');back.className='nm-back';back.href='index.html#home';back.textContent='‹';back.setAttribute('aria-label','返回藏馆');row.prepend(back);const edit=context.querySelector('.mc-edit');edit.textContent='编辑';row.append(edit);const add=context.querySelector('.mc-new');add.textContent='＋';add.setAttribute('aria-label','新建人物档案');
  const tabs=document.createElement('div');tabs.className='nm-tabs';tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','灵数功能');modeRow.prepend(tabs);const map=new Map();for(const [hash,label]of [['life','数字概览'],['match','关系合盘']]){const b=document.createElement('button');b.type='button';b.textContent=label;b.setAttribute('role','tab');b.onclick=()=>{location.hash=hash;document.querySelector(`[data-view="${hash}"]`)?.click();};tabs.append(b);map.set(hash,b);}const syncTabs=()=>{for(const [hash,b]of map)b.setAttribute('aria-selected',String(location.hash==='#match'?hash==='match':hash==='life'));};window.addEventListener('hashchange',syncTabs);syncTabs();
  context.querySelector('.mc-settings').remove();
+ const match=document.getElementById('matchView'),pairChoice=document.createElement('div');pairChoice.className='nm-pair-choice';pairChoice.innerHTML='<label>人物一<select aria-label="合盘人物一"></select></label><span aria-hidden="true">×</span><label>人物二<select aria-label="合盘人物二"></select></label><p role="status" hidden></p>';modeRow.after(pairChoice);
+ const savePair=document.createElement('button');savePair.type='button';savePair.className='nm-save-pair';savePair.textContent='保存合盘';savePair.onclick=()=>{const original=match.querySelector('#savePair');if(original){original.click();savePair.textContent='已保存到我的档案';}};pairChoice.append(savePair);
+ const selectors=[...pairChoice.querySelectorAll('select')],people=listPeople().filter(p=>p.birth.date.gregorian),notice=pairChoice.querySelector('p');
+ selectors.forEach((select,index)=>{select.append(new Option('选择档案',''));for(const p of people)select.append(new Option(p.name,p.id));const preferred=index?'magiclore-default-female-20000101':'magiclore-default-20000101';select.value=people.find(p=>p.id===preferred)?.id||people[index]?.id||'';select.onchange=()=>openPair();});
+ function openPair(){savePair.textContent='保存合盘';const selected=selectors.map(s=>people.find(p=>p.id===s.value));if(selected.some(p=>!p)){notice.textContent='请选择两份人物档案';notice.hidden=false;match.replaceChildren();return;}notice.hidden=true;window.RelationshipUI.openDates(selected[0].birth.date.gregorian,selected[1].birth.date.gregorian,selected.map(p=>({id:p.id,name:p.id==='magiclore-default-20000101'&&p.name==='默认档案'?'默认档案（男）':p.name})));}
+ function pairLayout(){match.querySelector('.pair-report-head')?.setAttribute('hidden','');if(match.querySelector('.pair-entry'))openPair();}
+ function pairMode(){const active=location.hash==='#match';pairChoice.hidden=!active;row.querySelector('label').hidden=active;edit.hidden=active||!document.body.dataset.mcProfile||document.body.dataset.mcProfile!=='ready';if(active){document.querySelector('[data-view="match"]')?.click();if(!match.querySelector('.pair-report'))openPair();pairLayout();}}
+ new MutationObserver(pairLayout).observe(match,{childList:true});window.addEventListener('hashchange',pairMode);pairMode();
+
  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  function decorate(){
   if(!report.querySelector('#core')||report.querySelector('.nm-core'))return;

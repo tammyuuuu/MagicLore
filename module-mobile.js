@@ -25,8 +25,10 @@ if(location.pathname.endsWith('destiny_book_web.html')){const {installNumerology
 if(location.pathname.endsWith('vedic_web.html')){const {installVedicMobile}=await import('./vedic-mobile.js');installVedicMobile();}
 if(isBazi){const {installBaziMobile}=await import('./bazi-mobile.js');installBaziMobile();}
 if(location.pathname.endsWith('western_web.html')){const {installWesternMobile}=await import('./western-mobile.js');installWesternMobile();}
+for(const button of document.querySelectorAll('.mc-new')){button.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';button.setAttribute('aria-label','新建人物档案');}
+
 }
-const originalPrepare=prepare;prepare=async()=>{try{await originalPrepare();}finally{document.body.dataset.mlReady='true';document.querySelector('.ml-startup')?.remove();}};
+const originalPrepare=prepare;prepare=async()=>{try{await originalPrepare();document.body.dataset.mlReady='true';document.querySelector('.ml-startup')?.remove();}catch(error){console.error('移动端初始化失败',error);const startup=document.querySelector('.ml-startup');if(startup){startup.textContent='页面未能打开，请重新加载。';const retry=document.createElement('button');retry.type='button';retry.textContent='重新加载';retry.onclick=()=>location.reload();startup.append(retry);}}};
 if(document.readyState==='complete')prepare();else window.addEventListener('load',prepare,{once:true});
 window.addEventListener('error',event=>{if(/quota|storage|档案|JSON/i.test(event.message||'')){const p=document.createElement('p');p.className='ml-warning';p.setAttribute('role','alert');p.textContent='保存未完成，请先导出备份并检查设备存储空间。';header.after(p);}});
 registerPWA();

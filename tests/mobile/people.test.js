@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {PEOPLE_KEY,readPeople,savePerson,listPeople,getPerson,getBirthFacts,setPersonDeleted,selectPerson,getSelectedPerson,legacyRecords,personFromLegacy,hideLegacy,exportProfiles,importProfiles,recoverProfiles,initializePeople} from '../../person-store.js';
+import {retireOldRelationshipCharts,ensureDefaultPerson,ensureDefaultFemalePerson,PEOPLE_KEY,readPeople,savePerson,listPeople,getPerson,getBirthFacts,setPersonDeleted,selectPerson,getSelectedPerson,legacyRecords,personFromLegacy,hideLegacy,exportProfiles,importProfiles,recoverProfiles,initializePeople} from '../../person-store.js';
 import {STORES} from '../../profile-store.js';
 import {resolveWallTime,offsetSeconds} from '../../profile-time.js';
 import {parseCivilTime} from '../../src/bazi/core/time.js';
@@ -28,3 +28,32 @@ test('农历春节、闰月和无效日期转换校验，原始日期独立留�
 test('农历备份的派生公历不匹配时整批拒绝，保留原库',async()=>{const s=memory(),source=memory(),f=facts();f.birth.date={calendar:'lunar',value:'2024-01-01',isLeapMonth:false,gregorian:'2024-02-11',conversion:null};savePerson(f,null,source);await assert.rejects(()=>importProfiles(JSON.stringify(exportProfiles(source)),s));assert.equal(s.getItem(PEOPLE_KEY),null);});
 
 test('现居地点可选，保存编辑与备份导入完整保留，非法坐标不写入',async()=>{const s=memory(),target=memory(),residence={place:{status:'known',name:'广东省深圳市',locationId:'test',latitude:22.54,longitude:114.06,source:'catalogue'},zone:{iana:'Asia/Shanghai',fixedOffset:null,offsetChoice:null}};const p=savePerson({...facts(),residence},null,s);const edited=savePerson({...p,name:'更新'},p.id,s);assert.deepEqual(edited.residence,residence);await importProfiles(JSON.stringify(exportProfiles(s)),target);assert.deepEqual(getPerson(p.id,target).residence,residence);const before=s.getItem(PEOPLE_KEY);assert.throws(()=>savePerson({...edited,residence:{...residence,place:{...residence.place,latitude:100}}},p.id,s),/经纬度/);assert.equal(s.getItem(PEOPLE_KEY),before);assert.equal(savePerson(facts(),null,s).residence,undefined);});
+
+test('默认档案可添加到旧档案库，重复打开和删除不重建',()=>{
+ const s=memory(),p=ensureDefaultPerson(s);assert.equal(p.birth.date.value,'2000-01-01');assert.equal(p.birth.time,'12:00');assert.equal(p.birth.zone.iana,'Asia/Shanghai');assert.equal(getSelectedPerson(s).id,p.id);assert.equal(p.sex,'male');assert.equal(ensureDefaultPerson(s),null);setPersonDeleted(p.id,true,s);assert.equal(ensureDefaultPerson(s),null);
+ const legacy=memory();legacy.setItem(STORES.personal,JSON.stringify([{iso:'1990-01-01'}]));assert.equal(ensureDefaultPerson(legacy).sex,'male');assert.equal(listPeople({},legacy).length,1);assert.equal(JSON.parse(legacy.getItem(STORES.personal))[0].iso,'1990-01-01');
+});
+
+test('已生成的默认档案只补空缺性别，保留用户选择',()=>{
+ const s=memory(),p=ensureDefaultPerson(s);savePerson({...p,sex:null},p.id,s);assert.equal(ensureDefaultPerson(s).sex,'male');const current=getPerson(p.id,s);savePerson({...current,sex:'female'},p.id,s);assert.equal(ensureDefaultPerson(s),null);assert.equal(getPerson(p.id,s).sex,'female');
+});
+
+test('补添默认档案不覆盖原人物及当前选择',()=>{
+ const s=memory(),p=savePerson(facts(),null,s);selectPerson(p.id,s);ensureDefaultPerson(s);assert.equal(listPeople({},s).length,2);assert.equal(getSelectedPerson(s).id,p.id);assert.equal(getPerson(p.id,s).name,p.name);
+});
+
+test('默认现居北京，补全旧默认档案但不覆盖手动地点',()=>{
+ const s=memory(),p=ensureDefaultPerson(s);assert.equal(p.residence.place.name,'北京');assert.equal(p.residence.zone.iana,'Asia/Shanghai');savePerson({...p,residence:null},p.id,s);assert.equal(ensureDefaultPerson(s).residence.place.name,'北京');const updated=getPerson(p.id,s);updated.residence.place.name='上海';savePerson(updated,p.id,s);assert.equal(ensureDefaultPerson(s),null);assert.equal(getPerson(p.id,s).residence.place.name,'上海');
+});
+
+test('女默认档案独立保存、不修改男档案、不重复创建或恢复已删除档案',()=>{
+ const s=memory(),male=ensureDefaultPerson(s),female=ensureDefaultFemalePerson(s);assert.equal(female.sex,'female');assert.deepEqual(female.birth,male.birth);assert.deepEqual(female.residence,male.residence);assert.equal(getPerson(male.id,s).sex,'male');assert.equal(getSelectedPerson(s).id,male.id);assert.equal(ensureDefaultFemalePerson(s),null);setPersonDeleted(female.id,true,s);assert.equal(ensureDefaultFemalePerson(s),null);
+});
+
+test('收起全部日期旧合盘但保留人物关联合盘，恢复后不重复收起',()=>{
+ const s=memory(),rows=[{isoA:'1995-02-07',isoB:'2000-02-09'},{isoA:'1999-07-07',isoB:'2000-02-09'},{isoA:'2000-01-01',isoB:'2000-01-01',personAId:'person-a',personBId:'person-b'}];s.setItem(STORES.relationship,JSON.stringify(rows));const before=s.getItem(STORES.relationship);retireOldRelationshipCharts(s);assert.equal(readPeople(s).hiddenLegacy.length,2);assert.equal(s.getItem(STORES.relationship),before);const key=readPeople(s).hiddenLegacy[0];hideLegacy(key,false,s);retireOldRelationshipCharts(s);assert.equal(readPeople(s).hiddenLegacy.length,1);
+});
+
+test('默认男档案名称补全且不覆盖用户改名',()=>{
+ const s=memory(),p=ensureDefaultPerson(s);assert.equal(p.name,'默认档案（男）');savePerson({...p,name:'默认档案'},p.id,s);assert.equal(ensureDefaultPerson(s).name,'默认档案（男）');const updated=getPerson(p.id,s);savePerson({...updated,name:'我的人物'},p.id,s);ensureDefaultPerson(s);assert.equal(getPerson(p.id,s).name,'我的人物');
+});

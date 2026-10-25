@@ -1,10 +1,28 @@
 /* Shared typography for the shell and every chart workspace.
    Keep professional layouts' sizes and line heights; unify only the typeface. */
-:root{--ui-font:"Songti SC","STSong","SimSun","Noto Serif CJK SC",serif;--heading-font:var(--ui-font);--mono-font:var(--ui-font)}
+:root{--ui-font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",sans-serif;--heading-font:"Songti SC","STSong","SimSun","Noto Serif CJK SC",serif;--mono-font:var(--ui-font)}
+@supports (-webkit-touch-callout:none){:root{--heading-font:"Songti SC","宋体-简","STSong","SimSun","Noto Serif CJK SC",serif}}
 html body.ml-app.ml-app,html body.ml-module.ml-module,
 html body.ml-app.ml-app :where(div,section,article,aside,header,footer,nav,main,form,p,span,h1,h2,h3,h4,h5,h6,label,a,button,input,select,textarea,summary,details,th,td,caption,small,strong,b,i,em,li,ul,ol,dl,dt,dd,legend,fieldset,output,mark),
 html body.ml-module.ml-module :where(div,section,article,aside,header,footer,nav,main,form,p,span,h1,h2,h3,h4,h5,h6,label,a,button,input,select,textarea,summary,details,th,td,caption,small,strong,b,i,em,li,ul,ol,dl,dt,dd,legend,fieldset,output,mark){font-family:var(--ui-font)!important}
 html body.ml-app.ml-app :where(h1,h2,h3,h4,h5,h6),html body.ml-module.ml-module :where(h1,h2,h3,h4,h5,h6){font-weight:600}
 html body.ml-app.ml-app :where(pre,code,kbd,samp),html body.ml-module.ml-module :where(pre,code,kbd,samp){font-family:var(--mono-font)!important}
-/* Numeric UI uses the same face with stable, aligned figures. Chart symbols retain their renderer's fallback for specialized glyphs. */
+/* Data stays sans-serif. SVG and specialized chart glyphs are deliberately excluded. */
 :is(.pf-wheel,.pf-birth-wheels,.nm-core,.nm-graph,.fortune-card,.reference-plate,.vm-planet-panel,.mw-preferences){font-variant-numeric:tabular-nums}
+
+/* Explicit heading exceptions override descendant font declarations from legacy pages. */
+html body.ml-app.ml-app :is(h1,h2),html body.ml-module.ml-module :is(h1,h2),
+html body.ml-app.ml-app :is(h1,h2) :where(span,b,strong,em),html body.ml-module.ml-module :is(h1,h2) :where(span,b,strong,em){font-family:var(--heading-font)!important}
+/* Home system entry names are module titles; their small descriptions stay sans-serif. */
+html body.ml-app.ml-app .mh-system>b{font-family:var(--heading-font)!important}
+/* Only the large stem/branch glyphs in the main plate remain Songti. */
+html body.ml-module.ml-module #chart .plate-character,
+html body.ml-module.ml-module #chart .plate-character :where(span,b,strong){font-family:var(--heading-font)!important}
+/* Increase contrast of muted UI without recoloring planetary/element glyphs. */
+html body.ml-app.ml-app{--muted:#625d7c}
+html body.ml-app.ml-app .ml-nav a{color:#696294}
+html body.ml-app.ml-app .ml-nav a[aria-current=page]{color:#5347b8}
+html body.ml-app.ml-app .me-footer p{color:#746c8c}
+html body.ml-module.ml-module :is(.mc-birth,.mc-summary,.section-index,.eyebrow){color:#625d7c!important}
+
+html body.ml-app.ml-app .pf-list-name{font-family:var(--ui-font)!important}

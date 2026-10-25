@@ -1,9 +1,36 @@
+# Dependencies and local diagnostics
 node_modules/
 maintenance/
 release/
-*.log
+
+# Local credentials
 .env
 .env.*
 !.env.example
+
+# Runtime/editor temporary files
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.cache/
+
+# Disposable test output (keep tests and fixtures tracked)
+/coverage/
+/.nyc_output/
+/test-results/
+/playwright-report/
+*.tsbuildinfo
+
+# Operating system metadata
 Thumbs.db
+Desktop.ini
 .DS_Store
+
+# Static runtime bundles, asset-manifest.json, vendor/ and lockfiles
+# intentionally remain tracked: GitHub Pages has no build step.

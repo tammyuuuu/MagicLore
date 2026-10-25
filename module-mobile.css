@@ -49,3 +49,5 @@ body.ml-module.mc-enabled{padding-bottom:calc(116px + env(safe-area-inset-bottom
    Deliberately excludes chart grids, fortune rows, core-number strips and forms. */
 html body.ml-module :is(.western-reading-grid,.vedic-theme-grid,.theme-grid,.evidence-grid,.d1-summary-grid,.reader-facts,.meaning-grid,.aux-grid,.atlas-detail-grid,.pair-grid,.difference-grid,.relationship-quick){display:grid!important;grid-template-columns:minmax(0,1fr)!important;grid-auto-flow:row!important;min-width:0}
 html body.ml-module :is(.western-reading-grid,.vedic-theme-grid,.theme-grid,.evidence-grid,.d1-summary-grid,.reader-facts,.meaning-grid,.aux-grid,.atlas-detail-grid,.pair-grid,.difference-grid,.relationship-quick)>*{grid-column:1!important;min-width:0;max-width:100%;overflow-wrap:anywhere}
+
+html body.ml-module .mc-person-row .mc-new{display:grid!important;place-items:center!important;padding:0!important;line-height:1!important;flex-shrink:0}html body.ml-module .mc-new svg{display:block;width:24px;height:24px;margin:0}
