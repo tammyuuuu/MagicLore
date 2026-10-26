@@ -17,3 +17,67 @@ body.ml-module.mw-enabled>main:not(.layout):not(.shell){padding:6px 8px 0!import
 .mw-time-step>button:nth-of-type(2){order:2}
 .mw-enabled .mw-preferences{padding:10px 0 16px}.mw-enabled .mw-preferences label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}.ml-module.mw-enabled .mw-preferences select{width:100%;min-width:0;font-size:14px!important;min-height:44px!important}.mw-enabled .mw-preferences h4{font-size:13px;margin:18px 0 10px}.mw-enabled .mw-orb-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.ml-module.mw-enabled .mw-preferences button{font-size:12px!important;min-height:44px!important;margin-top:12px!important}.mw-enabled .mw-chart-settings>summary{display:none}.mw-enabled .mw-chart-settings:not([open]){border:0!important;margin:0!important}.mw-enabled .mw-chart-settings[open]{margin:8px 4px!important}
 .mw-enabled .mw-secondary-settings>button{display:block;margin-left:auto!important;font-size:12px!important;min-height:44px!important;border:0!important;background:transparent!important;color:var(--accent)!important}.mw-enabled .mw-preference-error{color:#a04b68;font-size:12px}
+
+.western-planet-hit{cursor:pointer;touch-action:manipulation;outline:none}
+.western-planet-hit[aria-pressed=true]>.western-planet-symbol{filter:drop-shadow(0 0 3px #8e80bf80)}
+.western-planet-hit:focus-visible>circle{stroke:#9182bd;stroke-width:1.5;fill:#dad4ef33}
+html body.ml-module .western-planet-detail{margin:8px 4px 12px;padding:12px;background:#edf0f8;border:1px solid #e0dced;border-radius:12px;text-align:left;color:#49415e;min-width:0}
+.western-planet-detail header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+html body.ml-module .western-planet-detail h3{font-size:16px!important;margin:0!important;line-height:1.5}
+html body.ml-module .western-planet-detail header button{border:0!important;background:transparent!important;min-width:36px;min-height:36px!important;padding:0!important;font-size:22px!important;color:#73648f!important}
+.wp-facts{display:grid;gap:4px;font-size:13px;line-height:1.7}
+.wp-aspects{margin-top:9px;padding-top:8px;border-top:1px solid #ded9eb}.wp-aspects h4{margin:0 0 5px;font-size:13px;font-weight:500;color:#6156ae}
+.wp-aspects>div{display:flex;align-items:baseline;flex-wrap:wrap;justify-content:space-between;gap:2px 8px;padding:4px 0;font-size:13px;line-height:1.6}.wp-aspects small{font-size:11px!important;color:#736b85}
+html body.ml-module .wp-aspects p{font-size:13px!important;margin:4px 0!important;line-height:1.6!important}
+
+.mw-transit-view{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:5px 4px 7px;color:#625d7c;font-size:11px}
+.mw-transit-view label{display:flex;align-items:center;gap:6px;font-size:12px}
+html body.ml-module .mw-transit-view select{width:auto;min-height:36px!important;padding:5px 8px!important;font-size:13px!important;background:#eeebf8!important;border:0!important}
+.western-planet-hit[data-layer=natal]>.western-planet-symbol{opacity:.84}
+
+html body.ml-module .mw-chart-tools .mw-view-switch{margin-left:auto!important;white-space:nowrap;font-size:12px!important;color:#6156ae!important;background:#eeebf8!important;border-radius:8px!important;padding:6px 9px!important}
+.western-data-view{width:100%;max-width:100%;min-width:0;margin:0;text-align:left;overflow:visible}
+.western-data-view table{width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse}
+html body.ml-module .western-data-view :is(th,td){padding:5px 2px!important;border:1px solid #e3deef!important;font-size:11px!important;line-height:1.5!important;color:#49415e;white-space:normal;overflow-wrap:anywhere;text-align:center;vertical-align:middle}
+.western-data-view thead th{background:#eeebf8;font-weight:500}
+.western-data-view .wv-planet-icon{display:block;width:24px!important;height:24px!important;margin:auto}
+.western-data-view .wv-position{white-space:nowrap!important;font-size:11px!important;letter-spacing:-.3px}
+html body.ml-module .western-data-view .wv-note{font-size:10px!important;line-height:1.5!important;color:#746b85;margin:7px 0!important}
+.wv-matrix td{height:34px}.wv-matrix .wv-planet-icon{width:21px!important;height:21px!important}.wv-matrix .wv-aspect-mark{display:block;font-size:17px;line-height:18px;font-family:Arial,'Segoe UI Symbol',sans-serif}.wv-matrix small{display:block;font-size:9px!important;line-height:12px!important;color:#746b85}.wv-matrix .wv-unused{border-color:transparent!important;background:transparent}
+.wv-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.wv-links{padding:7px 0}.wv-links h4{font-size:13px;color:#6156ae;font-weight:500;margin:10px 0 4px}
+html body.ml-module .wv-links p{font-size:12px!important;line-height:1.8!important;margin:3px 0!important;color:#625d7c}
+.wv-mirrors>div{display:grid;grid-template-columns:44px 1fr 1fr;gap:6px;padding:4px 0;border-bottom:1px solid #e3deef;font-size:12px;line-height:1.6;color:#625d7c}
+
+html body.ml-module.ml-module .western-data-view .wv-sign{font-family:'Segoe UI Symbol','Apple Symbols',Arial,sans-serif!important;font-size:15px;line-height:1;vertical-align:middle;margin-right:3px}
+html body.ml-module .western-data-view .wv-degree{font-size:12px;letter-spacing:-.4px;white-space:nowrap}
+.wv-state-tag{display:inline-block;white-space:nowrap;margin:1px 2px}
+
+/* Match the wheel footprint; scope icon sizing above full-width chart SVG rules. */
+.western-data-view .wv-frame{width:100%;aspect-ratio:1;min-width:0}
+.western-data-view .wv-frame>table{height:100%}
+html body.ml-module.mw-enabled .western-data-view svg.wv-planet-icon{width:18px!important;height:18px!important;max-width:18px!important;display:block;margin:auto}
+html body.ml-module .western-data-view .wv-matrix :is(th,td){height:auto;padding:0 1px!important}
+html body.ml-module .western-data-view .wv-matrix .wv-aspect-mark{font-size:18px!important;line-height:18px!important}
+html body.ml-module .western-data-view .wv-matrix small{font-size:12px!important;line-height:13px!important;letter-spacing:-.3px}
+.wv-matrix tr{height:9.0909%}
+
+/* The entire aspect cell is a touch and keyboard target. */
+html body.ml-module .western-data-view button.wv-aspect-hit{display:flex!important;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;min-width:0!important;min-height:31px!important;margin:0!important;padding:0!important;border:0!important;border-radius:3px!important;background:transparent!important;cursor:pointer;touch-action:manipulation}
+html body.ml-module .western-data-view button.wv-aspect-hit[aria-pressed=true]{background:#e5dff4!important;box-shadow:inset 0 0 0 1px #a89acb}
+.wv-aspect-hit:focus-visible{outline:2px solid #9584bf;outline-offset:-2px}
+html body.ml-module .western-data-view .wv-aspect-detail{margin:8px 0;padding:10px 12px;border:1px solid #ded8ed;border-radius:10px;background:#eeebf8;color:#514765;font-size:14px;line-height:1.7;text-align:left}
+
+/* Transit controls: compact date row followed by one shared toolbar. */
+.mw-enabled .mw-transit-page .mw-transit-view{display:none!important}
+.ml-module.mw-enabled .mw-transit-page .mw-time-step{align-items:center;margin:0 0 3px;gap:2px}
+.ml-module.mw-enabled .mw-transit-page .mw-time-step>button{margin:0!important;min-height:34px!important;min-width:25px;font-size:23px!important}
+.ml-module.mw-enabled .mw-transit-page .library-transit-form{align-items:center;gap:5px!important}
+.ml-module.mw-enabled .mw-transit-page .library-transit-form>label{font-size:0!important;gap:0!important}
+.ml-module.mw-enabled .mw-transit-page .library-transit-form input{min-height:32px!important;height:32px;padding:3px 5px!important;font-size:13px!important}
+.ml-module.mw-enabled .mw-transit-page .library-transit-form>button{min-height:32px!important;padding:3px 6px!important;align-self:center}
+.ml-module.mw-enabled .mw-transit-page .mw-chart-tools{flex-wrap:nowrap;gap:3px;margin:0 0 3px}
+.ml-module.mw-enabled .mw-transit-page .mw-chart-tools .western-mode{gap:1px;flex-shrink:0}
+.ml-module.mw-enabled .mw-transit-page .mw-chart-tools button{padding:4px 6px!important;min-height:34px!important;white-space:nowrap}
+.ml-module.mw-enabled .mw-transit-page .mw-view-switch{margin-left:auto!important;padding:4px 6px!important}
+html body.ml-module.mw-enabled .mw-transit-page #mwTransitView{flex:0 1 auto;width:auto;min-width:0;max-width:116px;min-height:34px!important;padding:4px 18px 4px 5px!important;border:0!important;border-radius:8px;background:#eeebf8;font-size:12px!important;color:#625d7c}

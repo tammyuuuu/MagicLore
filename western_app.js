@@ -4,20 +4,108 @@
 const __factories=Object.create(null),__cache=Object.create(null);
 function __define(id,factory){__factories[id]=factory;}
 function __require(id){if(__cache[id])return __cache[id];const exports={};__cache[id]=exports;if(!__factories[id])throw new Error('Missing bundled module: '+id);__factories[id](exports,__require);return exports;}
-__define("src/western/planetSymbolLayout.js",function(exports,__require){
-// Label positions only: true ecliptic longitudes remain untouched.
-function placePlanetSymbols(planets,point){
- const placed=[];
- for(const planet of [...planets].sort((a,b)=>a.longitude-b.longitude)){
-  const candidates=[];for(const radius of [200,182,214])for(const shift of [0,...Array.from({length:45},(_,i)=>[-4*(i+1),4*(i+1)]).flat()]){const position=point(planet.longitude+shift,radius);candidates.push({position,cost:Math.abs(radius-200)+Math.abs(shift)*4});}
-  candidates.sort((a,b)=>a.cost-b.cost);const distance=c=>placed.length?Math.min(...placed.map(p=>Math.hypot(c.position[0]-p.position[0],c.position[1]-p.position[1]))):Infinity;
-  const chosen=candidates.find(c=>distance(c)>=38)||candidates.reduce((a,b)=>distance(a)>distance(b)?a:b);
-  placed.push({planet,position:chosen.position});
- }
- return placed;
+__define("src/western/classicalNarrative.js",function(exports,__require){
+const {Equator,Horizon,Observer}=globalThis.Astronomy;
+const names={Sun:'太阳',Moon:'月亮',Mercury:'水星',Venus:'金星',Mars:'火星',Jupiter:'木星',Saturn:'土星'};
+const signs=['白羊座','金牛座','双子座','巨蟹座','狮子座','处女座','天秤座','天蝎座','射手座','摩羯座','水瓶座','双鱼座'];
+const rulers=['Mars','Venus','Mercury','Moon','Sun','Mercury','Venus','Mars','Jupiter','Saturn','Saturn','Jupiter'];
+const exaltations={Sun:0,Moon:1,Mercury:5,Venus:11,Mars:9,Jupiter:3,Saturn:6};
+// Dorothean triplicities: day, night, participating ruler; no point tally.
+const triplicities=[['Sun','Jupiter','Saturn'],['Venus','Moon','Mars'],['Saturn','Mercury','Jupiter'],['Venus','Mars','Moon']];
+const topics=['自我与行动','财富与积累','学习与表达','家庭与根基','爱情与创造','工作与健康','伴侣与合作','共同资源','进修与远行','事业与责任','朋友与支持','独处与内在'];
+const questions=['怎样争取自己的位置','收入怎样形成并留下来','知识怎样成为可用的技能','怎样建立安稳的生活基础','喜欢怎样获得表达的空间','事务与精力怎样分配','承诺怎样落实为合作','共享与承担怎样分清','学习与视野怎样得到拓展','职业职责怎样获得支撑','哪些连接能够提供帮助','怎样安排休整与幕后准备'];
+const methods={Sun:'确定方向、承担主导职责，并让自己的成果被看见',Moon:'照顾生活需要、维持日常节奏，并建立可信赖的关系',Mercury:'学习技能、交换信息，并把想法表达清楚',Venus:'协调彼此的意愿、建立合作，并判断什么值得投入',Mars:'主动尝试、争取机会，并在分歧中维护边界',Jupiter:'扩展知识和经验、寻找发展机会，并形成自己的判断',Saturn:'接受必要规则、反复练习，并把责任和成果长期积累下来'};
+const venues=['你自己的选择、行动和对外表现','收入、预算和能够独立支配的资源','日常交流、技能练习和信息往来','居住安排、家人关系和私人生活','恋爱、创作和真正愿意投入的兴趣','日常事务、工作负担和精力分配','伴侣、客户和需要协商的一对一合作','共同资金、借贷和双方承担的责任','进修、远行和接触不同知识体系','职业职责、组织评价和公开成果','朋友、社群和共同项目','独处、幕后工作和休整'];
+const actions=['先做一个由自己决定的小项目，用行动检验方向','把收入方式、投入成本和留下的结余放在一起核对','选一项技能持续练习，并让学习产生可展示的成果','把居住、照顾家人和个人休息的安排谈清楚','给喜欢的人或创作留出实际时间，表达具体的意愿','把必须完成的事务与可用精力对齐，给休息留出位置','把承诺落实为时间安排、分工和可以商量的边界','明确共同资金的归属、使用权限和承担方式','选择能够拓展判断的学习或经历，避免只收集观点','选择能够累积专业成果的职责，并明确评价标准','围绕一个共同目标合作，观察谁愿意持续参与','留出不被事务占满的时间，将幕后准备转成下一步行动'];
+const drives={Sun:'明确主导权和发展方向',Moon:'照顾需求与建立安稳感',Mercury:'用学习和沟通打开局面',Venus:'通过合作与协调推进',Mars:'主动争取，也要处理分歧',Jupiter:'通过探索扩大选择',Saturn:'通过责任与长期积累建立位置'};
+const gap=(a,b)=>Math.abs(((a-b+540)%360)-180);
+const signIndex=p=>Math.floor(((p.longitude%360)+360)%360/30);
+function classicalConditions(chart){
+  const by=Object.fromEntries(chart.planets.filter(p=>names[p.name]).map(p=>[p.name,p]));
+  const date=new Date(chart.utc),observer=new Observer(Number(chart.input.latitude),Number(chart.input.longitude),0);
+  const eq=Equator('Sun',date,observer,true,true);
+  const altitude=Horizon(date,observer,eq.ra,eq.dec).altitude;
+  const day=altitude>=0;
+  const states={};
+  for(const p of Object.values(by)){
+    const s=signIndex(p),host=rulers[s],dignities=[];
+    if(host===p.name)dignities.push('入庙');
+    if(exaltations[p.name]===s)dignities.push('擢升');
+    const detriment=rulers[(s+6)%12]===p.name,fall=(exaltations[p.name]+6)%12===s;
+    const tri=triplicities[s%4];
+    if(tri[day?0:1]===p.name)dignities.push('当令三分主星');
+    else if(tri[2]===p.name)dignities.push('参与三分主星');
+    const distance=gap(p.longitude,by.Sun.longitude);
+    const solar=['Mercury','Venus','Mars','Jupiter','Saturn'].includes(p.name)?distance<=17/60?'日心':distance<8.5&&s===signIndex(by.Sun)?'灼伤':distance<17?'日光下':null:null;
+    const sect=p.name==='Mercury'?null:(day?['Sun','Jupiter','Saturn']:['Moon','Venus','Mars']).includes(p.name);
+    const angular=[1,4,7,10].includes(p.house),cadent=[3,6,9,12].includes(p.house);
+    states[p.name]={p,host,dignities,detriment,fall,solar,sect,angular,cadent};
+  }
+  return {by,states,day,altitude};
+}
+function conditionText(s,topic){
+  const n=names[s.p.name],good=s.dignities.length?`${n}有**${s.dignities.join('、')}**，在古占中这为“${methods[s.p.name]}”提供了较适合发挥的条件。`:'';
+  return good+(s.detriment||s.fall?` ${n}处于**${[s.detriment?'失势':'',s.fall?'落陷':''].filter(Boolean).join('、')}**：想通过${methods[s.p.name]}推进${topic}时，较容易遇到与自身节奏不同的要求，需要先谈清规则、分工和能自主决定的部分。`:'')+
+    (s.angular?` 第${s.p.house}宫是角宫，${topic}更容易通过${venues[s.p.house-1]}直接进入行动，不只是停留在想法中。`:s.cadent?` 第${s.p.house}宫是果宫，${topic}较多通过${venues[s.p.house-1]}逐步推进；学习、服务或准备的过程，比马上得到公开结果更值得留意。`:` 第${s.p.house}宫是续宫，${topic}更需要在${venues[s.p.house-1]}中保持连续投入，关注成果能否留下来。`)+
+    (s.p.retrograde?' 逆行又增加了回顾、修改或反复处理的意味。':'')+
+    (s.solar==='日心'?' 距太阳不超过17′，本版按日心处理，单独作为集中与强化的条件。':s.solar==='灼伤'?' 与太阳同星座且相距不足8.5°，处于灼伤范围：其事务可能被更强的职责、权威或目标覆盖，需要为自身需求争取表达空间。':s.solar==='日光下'?' 与太阳相距不足17°，处于日光下；相关行动的可见性与自主空间需要一并考虑。':'');
+}
+function classicalNarrative(chart){
+  const {by,states,day,altitude}=classicalConditions(chart);
+  const lord=h=>by[rulers[Math.floor(chart.cusps[h-1]/30)]],ascLord=lord(1);
+  const reception=(a,b)=>rulers[signIndex(a)]===b.name||exaltations[b.name]===signIndex(a);
+  const cards=topics.map((topic,i)=>{
+    const h=i+1,p=lord(h),s=states[p.name],occupants=Object.values(by).filter(q=>q.house===h);
+    const links=chart.aspects.filter(a=>a.a===p.name||a.b===p.name).sort((a,b)=>a.orb-b.orb).slice(0,2);
+    const host=by[s.host],hs=states[host.name];
+    const supported=s.dignities.length>0&&!s.detriment&&!s.fall,visible=s.angular;
+    const subtitle=s.solar==='灼伤'?'在强势职责之外保留自主空间':drives[p.name];
+    const importance=occupants.reduce((v,q)=>v+(['Sun','Moon'].includes(q.name)?5:3),0)+(p.name===ascLord.name?4:0)+(visible?3:0)+links.length+(h===10||h===7?1:0);
+    const stars=Math.min(5,Math.max(1,Math.ceil(importance/4)));
+    const linkText=links.map(a=>{
+      const q=by[a.a===p.name?a.b:a.a],incoming=reception(p,q),outgoing=reception(q,p),mutual=incoming&&outgoing;
+      const concrete=`${names[q.name]}把“${methods[q.name]}”带进${topic}，并牵涉${venues[q.house-1]}`;
+      return `${names[p.name]}${a.label}${names[q.name]}（偏差${a.orb.toFixed(2)}°），${concrete}。${mutual?`两者通过庙或擢升**互容**，可以用${topics[q.house-1]}中的安排承接${topic}，也让${topic}反过来服务这部分生活；${[90,180].includes(a.angle)?'不过，互容没有取消分歧，双方要求仍要逐项协调。':'两条线有相互支持的入口。'}`:incoming?`${names[q.name]}通过庙或擢升接纳${names[p.name]}，因此“${methods[q.name]}”可以成为${topic}的帮助方式。`:outgoing?`${names[p.name]}通过庙或擢升接纳${names[q.name]}，因此，在${topic}中需要为“${methods[q.name]}”留出位置；相应的安排主要发生在${venues[q.house-1]}。`:[90,180].includes(a.angle)?`两者没有庙或擢升接纳：推进${topic}与照顾${topics[q.house-1]}可能争用时间或要求不同做法，需要明确先后顺序。`:`这条相位较适合把${topics[q.house-1]}中的经验和安排用到${topic}，而不是让两部分生活各自运转。`}`;
+    }).join(' ');
+    const sectText=['Mars','Saturn','Jupiter','Venus'].includes(p.name)?`在这张${day?'昼':'夜'}盘中，${names[p.name]}${s.sect?'属于同阵营':'不属于同阵营'}。${p.name==='Saturn'?(s.sect?'它的限制更适合以规则、耐心与长期建设来运用。':'其责任与延迟较需要缓冲，不宜把所有要求同时压在自己身上。'):p.name==='Mars'?(s.sect?'行动与争取较适合被具体目标承接。':'行动与冲突较需要节奏和边界，过快推进容易增加消耗。'):p.name==='Jupiter'?(s.sect?'拓展知识、寻求指导和争取发展机会，是较适合运用的助力。':'拓展的意愿需要和投入能力对齐，避免机会增加时承诺也不断增加。'):(s.sect?'协调关系、取得共识和建立合作，是较适合运用的助力。':'希望维持和谐时，也要讲清投入和责任，避免为了好相处而接受不合适的安排。')}`:'';
+    return {house:h,importance,stars,title:`${topic} · ${subtitle}`,meta:`重要性 ${'★'.repeat(stars)}${'☆'.repeat(5-stars)}`,evidence:`第${h}宫${signs[Math.floor(chart.cusps[i]/30)]} · 宫主星${names[p.name]}${signs[signIndex(p)]}第${p.house}宫`,paragraphs:[
+      `这张盘的${topic}，重点在于**${methods[p.name]}**。依据是第${h}宫由${names[p.name]}掌管，落在第${p.house}宫：${p.house===h?`这部分生活较直接取决于你怎样处理${venues[p.house-1]}。`:`它把${topic}带到${venues[p.house-1]}中；例如，${actions[p.house-1]}，会参与这部分生活的发展。`}${occupants.length?`第${h}宫的${occupants.map(q=>names[q.name]).join('、')}又加入了${occupants.map(q=>methods[q.name]).join('；')}的要求。`:''}`,
+      conditionText(s,topic)+' '+sectText,
+      host.name===p.name?`${names[p.name]}落在自己掌管的星座，**${methods[p.name]}**本身就是这部分生活的重要手段，较能按自己的方式组织它。 ${linkText}`:`${names[p.name]}在${signs[signIndex(p)]}，由${names[host.name]}定位。换成生活里的意思：想要${methods[p.name]}，落实时的做法是**${methods[host.name]}**。这件事主要发生在${venues[host.house-1]}，因为${names[host.name]}落在第${host.house}宫。${hs.dignities.length?`${names[host.name]}有${hs.dignities.join('、')}，使这种做法较有发挥条件。`:''}${hs.detriment||hs.fall?`${names[host.name]}也有失势或落陷，这条路径容易遇到不同规则或期待，需要先确认自己能决定什么、哪些事必须协商。`:''}${hs.p.retrograde?`${names[host.name]}逆行，推进时较可能反复修改做法；适合留下调整余地。`:''}${host.name==='Mars'&&!hs.sect?'火星不属本盘阵营，主动争取的同时尤其需要控制冲突与过度消耗。':host.name==='Saturn'&&!hs.sect?'土星不属本盘阵营，责任和等待需要设定边界，避免把持续承担变成无法停下。':''} ${linkText}`,
+      `可以从一件具体的事开始：**${actions[i]}**。${p.house!==h?`同时留意${venues[p.house-1]}会怎样参与这件事，把这条宫主星联系用到实际安排里。`:''}${h===6?'这里描述劳务、精力与日常负担，不从星体状态推断疾病。':''}`
+    ]};
+  }).sort((a,b)=>b.importance-a.importance||a.house-b.house);
+  return [{title:`整张盘的主线 · ${day?'昼盘':'夜盘'}中的资源与落实条件`,evidence:`太阳几何高度${altitude.toFixed(2)}° · 命主星${names[ascLord.name]}第${ascLord.house}宫`,paragraphs:[
+    `出生时太阳在地平线${day?'上':'下'}方，因此这是**${day?'昼盘':'夜盘'}**。${day?'太阳、木星、土星属于昼间阵营；土星的约束较容易被规则承接，火星的急切则较需要管理。':'月亮、金星、火星属于夜间阵营；火星的行动较容易获得承接，土星的压力则较需要缓冲。'}这不是吉凶结论，而是判断同一颗星为什么在不同盘中需要不同处理方式的起点。`,
+    `本盘优先阅读**${cards.slice(0,3).map(c=>topics[c.house-1]).join('、')}**。命主星${names[ascLord.name]}落第${ascLord.house}宫，使${topics[ascLord.house-1]}成为连接自我与生活条件的一条主线。下面每个主题都会同时回答：负责它的行星有没有资源、在哪里落实，以及谁能承接它。`,
+    '采用七星宫主星、入庙与失势、擢升与落陷、多罗修斯昼夜及参与三分主星、角续果宫、逆行和太阳距离，并在主要相位中判断庙与擢升接纳。星级表示关注重点，不以尊贵分数预测人生结果。界、面、入相出相与完整海兹尚未纳入；水星不按太阳前后方粗略归入昼夜阵营。'
+  ]},...cards];
 }
 
-Object.assign(exports,{placePlanetSymbols});
+Object.assign(exports,{classicalConditions,classicalNarrative});
+});
+__define("src/western/aspectOrbs.js",function(exports,__require){
+const DEFAULT_ASPECT_ORBS={0:8,60:4,90:6,120:6,180:8};
+function aspectOrbs(input={}){const result={...DEFAULT_ASPECT_ORBS};if(input.aspectOrbs!==undefined){if(!input.aspectOrbs||typeof input.aspectOrbs!=='object'||Array.isArray(input.aspectOrbs))throw Error('容许度设置无效。');for(const [angle,value] of Object.entries(input.aspectOrbs)){if(!(angle in result)||typeof value!=='number'||!Number.isFinite(value)||value<0||value>15)throw Error('容许度应在 0–15° 之间。');result[angle]=value;}}return result;}
+
+Object.assign(exports,{DEFAULT_ASPECT_ORBS,aspectOrbs});
+});
+__define("src/western/planetDetails.js",function(exports,__require){
+const {aspectOrbs}=__require("src/western/aspectOrbs.js");
+const rulers=['Mars','Venus','Mercury','Moon','Sun','Mercury','Venus','Mars','Jupiter','Saturn','Saturn','Jupiter'];
+const labels={0:'合相',60:'六合',90:'刑相',120:'拱相',180:'对冲'};
+const planets=new Set(['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto']);
+function planetDetails(chart,name,{natal=null,housesFromNatal=true}={}){
+ const planet=chart.planets.find(p=>p.name===name);if(!planet)return null;
+ const cusps=natal&&housesFromNatal?natal.cusps:chart.cusps,limits=aspectOrbs(chart.input);
+ const ruledHouses=cusps.flatMap((c,i)=>rulers[Math.floor(((c%360)+360)%360/30)]===name?[i+1]:[]);
+ let aspects;
+ if(natal){const limit=chart.input.transitOrb??3;aspects=[];for(const p of [...natal.planets,{name:'MC',longitude:natal.mc}].filter(p=>planets.has(p.name)||p.name==='MC')){const gap=Math.abs(((planet.longitude-p.longitude+540)%360)-180);for(const angle of [0,60,90,120,180]){const orb=Math.abs(gap-angle);if(orb<=limit)aspects.push({other:p.name,angle,label:labels[angle],orb,limit,scope:'natal'});}}}
+ else aspects=chart.aspects.filter(a=>a.a===name||a.b===name).map(a=>({other:a.a===name?a.b:a.a,angle:a.angle,label:a.label,orb:a.orb,limit:limits[a.angle],scope:'chart'}));
+ return {...planet,ruledHouses,aspects:aspects.sort((a,b)=>a.orb-b.orb),transit:!!natal};
+}
+
+Object.assign(exports,{planetDetails});
 });
 __define("src/western/planetSymbols.js",function(exports,__require){
 // Font-independent astronomical symbols; presentation only, 24-unit artwork.
@@ -40,11 +128,77 @@ function planetSymbol(name,point){if(!artwork[name])return '';const [x,y]=point;
 
 Object.assign(exports,{planetSymbol});
 });
-__define("src/western/aspectOrbs.js",function(exports,__require){
-const DEFAULT_ASPECT_ORBS={0:8,60:4,90:6,120:6,180:8};
-function aspectOrbs(input={}){const result={...DEFAULT_ASPECT_ORBS};if(input.aspectOrbs!==undefined){if(!input.aspectOrbs||typeof input.aspectOrbs!=='object'||Array.isArray(input.aspectOrbs))throw Error('容许度设置无效。');for(const [angle,value] of Object.entries(input.aspectOrbs)){if(!(angle in result)||typeof value!=='number'||!Number.isFinite(value)||value<0||value>15)throw Error('容许度应在 0–15° 之间。');result[angle]=value;}}return result;}
+__define("src/western/chartViews.js",function(exports,__require){
+const {classicalConditions}=__require("src/western/classicalNarrative.js");
+const {planetDetails}=__require("src/western/planetDetails.js");
+const {planetSymbol}=__require("src/western/planetSymbols.js");
+const names={Sun:'太阳',Moon:'月亮',Mercury:'水星',Venus:'金星',Mars:'火星',Jupiter:'木星',Saturn:'土星',Uranus:'天王星',Neptune:'海王星',Pluto:'冥王星'};
+const seven=['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn'];
+const rulers=['Mars','Venus','Mercury','Moon','Sun','Mercury','Venus','Mars','Jupiter','Saturn','Saturn','Jupiter'];
+const exalt={Sun:0,Moon:1,Mercury:5,Venus:11,Mars:9,Jupiter:3,Saturn:6};
+const signs=['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
+const norm=x=>((x%360)+360)%360;
+// Egyptian bounds, with upper endpoints excluded. Chaldean faces follow the seven-planet cycle.
+// Reference: flatlib/dignities/tables.py (Egyptian terms and Chaldean faces).
+const terms=[
+ [['Jupiter',6],['Venus',12],['Mercury',20],['Mars',25],['Saturn',30]],
+ [['Venus',8],['Mercury',14],['Jupiter',22],['Saturn',27],['Mars',30]],
+ [['Mercury',6],['Jupiter',12],['Venus',17],['Mars',24],['Saturn',30]],
+ [['Mars',7],['Venus',13],['Mercury',19],['Jupiter',26],['Saturn',30]],
+ [['Jupiter',6],['Venus',11],['Saturn',18],['Mercury',24],['Mars',30]],
+ [['Mercury',7],['Venus',17],['Jupiter',21],['Mars',28],['Saturn',30]],
+ [['Saturn',6],['Mercury',14],['Jupiter',21],['Venus',28],['Mars',30]],
+ [['Mars',7],['Venus',11],['Mercury',19],['Jupiter',24],['Saturn',30]],
+ [['Jupiter',12],['Venus',17],['Mercury',21],['Saturn',26],['Mars',30]],
+ [['Mercury',7],['Jupiter',14],['Venus',22],['Saturn',26],['Mars',30]],
+ [['Mercury',7],['Venus',13],['Jupiter',20],['Mars',25],['Saturn',30]],
+ [['Venus',12],['Jupiter',16],['Mercury',19],['Mars',28],['Saturn',30]]
+];
+const termRuler=longitude=>terms[Math.floor(norm(longitude)/30)].find(([,end])=>norm(longitude)%30<end)[0];
+const faceRuler=longitude=>['Mars','Sun','Venus','Mercury','Moon','Saturn','Jupiter'][Math.floor(norm(longitude)/10)%7];
+const mirroredPoints=longitude=>({antiscion:norm(180-longitude),contraAntiscion:norm(-longitude)});
+function shortPosition(longitude){const total=Math.round(norm(longitude)*60)%21600;return signs[Math.floor(total/1800)]+'\uFE0E '+Math.floor(total%1800/60)+'°'+String(total%60).padStart(2,'0')+'′';}
+const positionHTML=longitude=>{const [sign,degree]=shortPosition(longitude).split(' ');return `<span class="wv-sign">${sign}</span><span class="wv-degree">${degree}</span>`;};
+const icon=name=>`<svg class="wv-planet-icon" viewBox="0 0 30 30" role="img" aria-label="${names[name]}">${planetSymbol(name,[15,15])}</svg>`;
+function aspectMatrix(chart,{natal=null}={}){
+ const rows=chart.planets.filter(p=>names[p.name]),columns=(natal||chart).planets.filter(p=>names[p.name]);
+ const cells=rows.map((p,i)=>{const details=planetDetails(chart,p.name,{natal});return columns.map((q,j)=>!natal&&j>=i?null:details.aspects.find(a=>a.other===q.name)||null);});
+ return {rows,columns,cells,transit:!!natal};
+}
+function classicalTableData(chart){
+ const conditions=classicalConditions(chart),{states,by}=conditions;
+ const rows=seven.map(name=>{const s=states[name],p=by[name],dignities=s.dignities.map(v=>v==='入庙'?'庙':v==='擢升'?'旺':'三分');if(termRuler(p.longitude)===name)dignities.push('界');if(faceRuler(p.longitude)===name)dignities.push('面');if(s.detriment)dignities.push('失势');if(s.fall)dignities.push('落陷');const delta=norm(by.Sun.longitude-p.longitude);const orientation=name==='Sun'?null:delta<1e-8?'合日':Math.abs(delta-180)<1e-8?'对日':delta<180?'东出':'西入';
+ return {name,longitude:p.longitude,house:p.house,ruled:planetDetails(chart,name).ruledHouses,dignities:[...new Set(dignities)],status:[s.sect===true?'得时':s.sect===false?'失时':null,orientation,p.retrograde?'逆行':'顺行',s.solar==='灼伤'?'燃烧':s.solar].filter(Boolean),...mirroredPoints(p.longitude)};});
+ const received=(guest,host)=>{const sign=Math.floor(norm(guest.longitude)/30);return rulers[sign]===host.name?'庙':exalt[host.name]===sign?'旺':null;};
+ const mutual=[],receptions=[];
+ for(let i=0;i<seven.length;i++)for(let j=i+1;j<seven.length;j++){const a=by[seven[i]],b=by[seven[j]],ab=received(a,b),ba=received(b,a);if(ab&&ba)mutual.push({a:a.name,b:b.name,ab,ba});else if(ab)receptions.push({host:b.name,guest:a.name,by:ab});else if(ba)receptions.push({host:a.name,guest:b.name,by:ba});}
+ return {rows,mutual,receptions,day:conditions.day};
+}
+function chartDataHTML(chart,{natal=null}={}){
+ if(chart.input.astrologyMode!=='classical'){
+ const m=aspectMatrix(chart,{natal}),glyph={0:'☌',60:'⚹',90:'□',120:'△',180:'☍'},colors={0:'#a58b59',60:'#6d9079',90:'#b36d78',120:'#6b8fb8',180:'#ac6581'};
+ return `<div class="wv-matrix"><div class="wv-frame"><table aria-label="${m.transit?'行运与本命':'主要'}相位矩阵"><thead><tr><th>${m.transit?'运／命':''}</th>${m.columns.map(p=>`<th scope="col">${icon(p.name)}</th>`).join('')}</tr></thead><tbody>${m.rows.map((p,i)=>`<tr><th scope="row">${icon(p.name)}</th>${m.columns.map((q,j)=>{const a=m.cells[i][j];return `<td ${!m.transit&&j>i?'class="wv-unused"':''}>${!m.transit&&j===i?icon(p.name):a?`<button type="button" class="wv-aspect-hit" aria-pressed="false" aria-label="${m.transit?'行运':''}${names[p.name]}与${m.transit?'本命':''}${names[q.name]} · ${a.label}（${a.angle}°），偏差 ${a.orb.toFixed(2)}°，容许度 ${a.limit}°"><span class="wv-aspect-mark" style="color:${colors[a.angle]}">${glyph[a.angle]}</span><small>${a.orb.toFixed(1)}°</small><span class="wv-sr">${names[p.name]}${a.label}${names[q.name]}，偏差${a.orb.toFixed(2)}度，容许度${a.limit}度</span></button>`:''}</td>`;}).join('')}</tr>`).join('')}</tbody></table></div><p class="wv-note">${m.transit?'行运行星 × 本命行星 · ':''}格内数字为相位偏差</p></div>`;
+ }
+ const d=classicalTableData(chart);
+ return `<div class="wv-classical"><div class="wv-frame"><table aria-label="古典行星状态表"><colgroup><col style="width:10%"><col style="width:24%"><col style="width:8%"><col style="width:10%"><col style="width:22%"><col style="width:26%"></colgroup><thead><tr>${['行星','落座','落宫','主宰','尊贵','特殊状态'].map(s=>`<th scope="col">${s}</th>`).join('')}</tr></thead><tbody>${d.rows.map(p=>`<tr><th scope="row">${icon(p.name)}</th><td class="wv-position">${positionHTML(p.longitude)}</td><td>${p.house}</td><td>${p.ruled.join(',')||'—'}</td><td>${p.dignities.map(v=>`<span class="wv-state-tag">${v}</span>`).join(' ')||'—'}</td><td>${p.status.map(v=>`<span class="wv-state-tag">${v}</span>`).join(' ')}</td></tr>`).join('')}</tbody></table></div><p class="wv-note">${d.day?'昼盘':'夜盘'} · 埃及界 · 迦勒底面</p><section class="wv-links"><h4>互容</h4><p>${d.mutual.map(p=>`${names[p.a]} ↔ ${names[p.b]}（${p.ab}／${p.ba}）`).join('；')||'无'}</p><h4>接纳</h4><p>${d.receptions.map(p=>`${names[p.host]}接纳${names[p.guest]}（${p.by}）`).join('；')||'无'}</p><h4>映点 / 反映点</h4><div class="wv-mirrors">${d.rows.map(p=>`<div><span>${names[p.name]}</span><span>${shortPosition(p.antiscion)}</span><span>${shortPosition(p.contraAntiscion)}</span></div>`).join('')}</div></section></div>`;
+}
 
-Object.assign(exports,{DEFAULT_ASPECT_ORBS,aspectOrbs});
+Object.assign(exports,{termRuler,faceRuler,mirroredPoints,shortPosition,aspectMatrix,classicalTableData,chartDataHTML});
+});
+__define("src/western/planetSymbolLayout.js",function(exports,__require){
+// Label positions only: true ecliptic longitudes remain untouched.
+function placePlanetSymbols(planets,point){
+ const placed=[];
+ for(const planet of [...planets].sort((a,b)=>a.longitude-b.longitude)){
+  const candidates=[];for(const radius of [200,182,214])for(const shift of [0,...Array.from({length:45},(_,i)=>[-4*(i+1),4*(i+1)]).flat()]){const position=point(planet.longitude+shift,radius);candidates.push({position,cost:Math.abs(radius-200)+Math.abs(shift)*4});}
+  candidates.sort((a,b)=>a.cost-b.cost);const distance=c=>placed.length?Math.min(...placed.map(p=>Math.hypot(c.position[0]-p.position[0],c.position[1]-p.position[1]))):Infinity;
+  const chosen=candidates.find(c=>distance(c)>=38)||candidates.reduce((a,b)=>distance(a)>distance(b)?a:b);
+  placed.push({planet,position:chosen.position});
+ }
+ return placed;
+}
+
+Object.assign(exports,{placePlanetSymbols});
 });
 __define("src/vedic/zodiac.js",function(exports,__require){
 const SIGNS=['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
@@ -621,87 +775,9 @@ function nodeNarrative(chart){
 
 Object.assign(exports,{natalNarrative,nodeNarrative});
 });
-__define("src/western/classicalNarrative.js",function(exports,__require){
-const {Equator,Horizon,Observer}=globalThis.Astronomy;
-const names={Sun:'太阳',Moon:'月亮',Mercury:'水星',Venus:'金星',Mars:'火星',Jupiter:'木星',Saturn:'土星'};
-const signs=['白羊座','金牛座','双子座','巨蟹座','狮子座','处女座','天秤座','天蝎座','射手座','摩羯座','水瓶座','双鱼座'];
-const rulers=['Mars','Venus','Mercury','Moon','Sun','Mercury','Venus','Mars','Jupiter','Saturn','Saturn','Jupiter'];
-const exaltations={Sun:0,Moon:1,Mercury:5,Venus:11,Mars:9,Jupiter:3,Saturn:6};
-// Dorothean triplicities: day, night, participating ruler; no point tally.
-const triplicities=[['Sun','Jupiter','Saturn'],['Venus','Moon','Mars'],['Saturn','Mercury','Jupiter'],['Venus','Mars','Moon']];
-const topics=['自我与行动','财富与积累','学习与表达','家庭与根基','爱情与创造','工作与健康','伴侣与合作','共同资源','进修与远行','事业与责任','朋友与支持','独处与内在'];
-const questions=['怎样争取自己的位置','收入怎样形成并留下来','知识怎样成为可用的技能','怎样建立安稳的生活基础','喜欢怎样获得表达的空间','事务与精力怎样分配','承诺怎样落实为合作','共享与承担怎样分清','学习与视野怎样得到拓展','职业职责怎样获得支撑','哪些连接能够提供帮助','怎样安排休整与幕后准备'];
-const methods={Sun:'确定方向、承担主导职责，并让自己的成果被看见',Moon:'照顾生活需要、维持日常节奏，并建立可信赖的关系',Mercury:'学习技能、交换信息，并把想法表达清楚',Venus:'协调彼此的意愿、建立合作，并判断什么值得投入',Mars:'主动尝试、争取机会，并在分歧中维护边界',Jupiter:'扩展知识和经验、寻找发展机会，并形成自己的判断',Saturn:'接受必要规则、反复练习，并把责任和成果长期积累下来'};
-const venues=['你自己的选择、行动和对外表现','收入、预算和能够独立支配的资源','日常交流、技能练习和信息往来','居住安排、家人关系和私人生活','恋爱、创作和真正愿意投入的兴趣','日常事务、工作负担和精力分配','伴侣、客户和需要协商的一对一合作','共同资金、借贷和双方承担的责任','进修、远行和接触不同知识体系','职业职责、组织评价和公开成果','朋友、社群和共同项目','独处、幕后工作和休整'];
-const actions=['先做一个由自己决定的小项目，用行动检验方向','把收入方式、投入成本和留下的结余放在一起核对','选一项技能持续练习，并让学习产生可展示的成果','把居住、照顾家人和个人休息的安排谈清楚','给喜欢的人或创作留出实际时间，表达具体的意愿','把必须完成的事务与可用精力对齐，给休息留出位置','把承诺落实为时间安排、分工和可以商量的边界','明确共同资金的归属、使用权限和承担方式','选择能够拓展判断的学习或经历，避免只收集观点','选择能够累积专业成果的职责，并明确评价标准','围绕一个共同目标合作，观察谁愿意持续参与','留出不被事务占满的时间，将幕后准备转成下一步行动'];
-const drives={Sun:'明确主导权和发展方向',Moon:'照顾需求与建立安稳感',Mercury:'用学习和沟通打开局面',Venus:'通过合作与协调推进',Mars:'主动争取，也要处理分歧',Jupiter:'通过探索扩大选择',Saturn:'通过责任与长期积累建立位置'};
-const gap=(a,b)=>Math.abs(((a-b+540)%360)-180);
-const signIndex=p=>Math.floor(((p.longitude%360)+360)%360/30);
-function classicalConditions(chart){
-  const by=Object.fromEntries(chart.planets.filter(p=>names[p.name]).map(p=>[p.name,p]));
-  const date=new Date(chart.utc),observer=new Observer(Number(chart.input.latitude),Number(chart.input.longitude),0);
-  const eq=Equator('Sun',date,observer,true,true);
-  const altitude=Horizon(date,observer,eq.ra,eq.dec).altitude;
-  const day=altitude>=0;
-  const states={};
-  for(const p of Object.values(by)){
-    const s=signIndex(p),host=rulers[s],dignities=[];
-    if(host===p.name)dignities.push('入庙');
-    if(exaltations[p.name]===s)dignities.push('擢升');
-    const detriment=rulers[(s+6)%12]===p.name,fall=(exaltations[p.name]+6)%12===s;
-    const tri=triplicities[s%4];
-    if(tri[day?0:1]===p.name)dignities.push('当令三分主星');
-    else if(tri[2]===p.name)dignities.push('参与三分主星');
-    const distance=gap(p.longitude,by.Sun.longitude);
-    const solar=['Mercury','Venus','Mars','Jupiter','Saturn'].includes(p.name)?distance<=17/60?'日心':distance<8.5&&s===signIndex(by.Sun)?'灼伤':distance<17?'日光下':null:null;
-    const sect=p.name==='Mercury'?null:(day?['Sun','Jupiter','Saturn']:['Moon','Venus','Mars']).includes(p.name);
-    const angular=[1,4,7,10].includes(p.house),cadent=[3,6,9,12].includes(p.house);
-    states[p.name]={p,host,dignities,detriment,fall,solar,sect,angular,cadent};
-  }
-  return {by,states,day,altitude};
-}
-function conditionText(s,topic){
-  const n=names[s.p.name],good=s.dignities.length?`${n}有**${s.dignities.join('、')}**，在古占中这为“${methods[s.p.name]}”提供了较适合发挥的条件。`:'';
-  return good+(s.detriment||s.fall?` ${n}处于**${[s.detriment?'失势':'',s.fall?'落陷':''].filter(Boolean).join('、')}**：想通过${methods[s.p.name]}推进${topic}时，较容易遇到与自身节奏不同的要求，需要先谈清规则、分工和能自主决定的部分。`:'')+
-    (s.angular?` 第${s.p.house}宫是角宫，${topic}更容易通过${venues[s.p.house-1]}直接进入行动，不只是停留在想法中。`:s.cadent?` 第${s.p.house}宫是果宫，${topic}较多通过${venues[s.p.house-1]}逐步推进；学习、服务或准备的过程，比马上得到公开结果更值得留意。`:` 第${s.p.house}宫是续宫，${topic}更需要在${venues[s.p.house-1]}中保持连续投入，关注成果能否留下来。`)+
-    (s.p.retrograde?' 逆行又增加了回顾、修改或反复处理的意味。':'')+
-    (s.solar==='日心'?' 距太阳不超过17′，本版按日心处理，单独作为集中与强化的条件。':s.solar==='灼伤'?' 与太阳同星座且相距不足8.5°，处于灼伤范围：其事务可能被更强的职责、权威或目标覆盖，需要为自身需求争取表达空间。':s.solar==='日光下'?' 与太阳相距不足17°，处于日光下；相关行动的可见性与自主空间需要一并考虑。':'');
-}
-function classicalNarrative(chart){
-  const {by,states,day,altitude}=classicalConditions(chart);
-  const lord=h=>by[rulers[Math.floor(chart.cusps[h-1]/30)]],ascLord=lord(1);
-  const reception=(a,b)=>rulers[signIndex(a)]===b.name||exaltations[b.name]===signIndex(a);
-  const cards=topics.map((topic,i)=>{
-    const h=i+1,p=lord(h),s=states[p.name],occupants=Object.values(by).filter(q=>q.house===h);
-    const links=chart.aspects.filter(a=>a.a===p.name||a.b===p.name).sort((a,b)=>a.orb-b.orb).slice(0,2);
-    const host=by[s.host],hs=states[host.name];
-    const supported=s.dignities.length>0&&!s.detriment&&!s.fall,visible=s.angular;
-    const subtitle=s.solar==='灼伤'?'在强势职责之外保留自主空间':drives[p.name];
-    const importance=occupants.reduce((v,q)=>v+(['Sun','Moon'].includes(q.name)?5:3),0)+(p.name===ascLord.name?4:0)+(visible?3:0)+links.length+(h===10||h===7?1:0);
-    const stars=Math.min(5,Math.max(1,Math.ceil(importance/4)));
-    const linkText=links.map(a=>{
-      const q=by[a.a===p.name?a.b:a.a],incoming=reception(p,q),outgoing=reception(q,p),mutual=incoming&&outgoing;
-      const concrete=`${names[q.name]}把“${methods[q.name]}”带进${topic}，并牵涉${venues[q.house-1]}`;
-      return `${names[p.name]}${a.label}${names[q.name]}（偏差${a.orb.toFixed(2)}°），${concrete}。${mutual?`两者通过庙或擢升**互容**，可以用${topics[q.house-1]}中的安排承接${topic}，也让${topic}反过来服务这部分生活；${[90,180].includes(a.angle)?'不过，互容没有取消分歧，双方要求仍要逐项协调。':'两条线有相互支持的入口。'}`:incoming?`${names[q.name]}通过庙或擢升接纳${names[p.name]}，因此“${methods[q.name]}”可以成为${topic}的帮助方式。`:outgoing?`${names[p.name]}通过庙或擢升接纳${names[q.name]}，因此，在${topic}中需要为“${methods[q.name]}”留出位置；相应的安排主要发生在${venues[q.house-1]}。`:[90,180].includes(a.angle)?`两者没有庙或擢升接纳：推进${topic}与照顾${topics[q.house-1]}可能争用时间或要求不同做法，需要明确先后顺序。`:`这条相位较适合把${topics[q.house-1]}中的经验和安排用到${topic}，而不是让两部分生活各自运转。`}`;
-    }).join(' ');
-    const sectText=['Mars','Saturn','Jupiter','Venus'].includes(p.name)?`在这张${day?'昼':'夜'}盘中，${names[p.name]}${s.sect?'属于同阵营':'不属于同阵营'}。${p.name==='Saturn'?(s.sect?'它的限制更适合以规则、耐心与长期建设来运用。':'其责任与延迟较需要缓冲，不宜把所有要求同时压在自己身上。'):p.name==='Mars'?(s.sect?'行动与争取较适合被具体目标承接。':'行动与冲突较需要节奏和边界，过快推进容易增加消耗。'):p.name==='Jupiter'?(s.sect?'拓展知识、寻求指导和争取发展机会，是较适合运用的助力。':'拓展的意愿需要和投入能力对齐，避免机会增加时承诺也不断增加。'):(s.sect?'协调关系、取得共识和建立合作，是较适合运用的助力。':'希望维持和谐时，也要讲清投入和责任，避免为了好相处而接受不合适的安排。')}`:'';
-    return {house:h,importance,stars,title:`${topic} · ${subtitle}`,meta:`重要性 ${'★'.repeat(stars)}${'☆'.repeat(5-stars)}`,evidence:`第${h}宫${signs[Math.floor(chart.cusps[i]/30)]} · 宫主星${names[p.name]}${signs[signIndex(p)]}第${p.house}宫`,paragraphs:[
-      `这张盘的${topic}，重点在于**${methods[p.name]}**。依据是第${h}宫由${names[p.name]}掌管，落在第${p.house}宫：${p.house===h?`这部分生活较直接取决于你怎样处理${venues[p.house-1]}。`:`它把${topic}带到${venues[p.house-1]}中；例如，${actions[p.house-1]}，会参与这部分生活的发展。`}${occupants.length?`第${h}宫的${occupants.map(q=>names[q.name]).join('、')}又加入了${occupants.map(q=>methods[q.name]).join('；')}的要求。`:''}`,
-      conditionText(s,topic)+' '+sectText,
-      host.name===p.name?`${names[p.name]}落在自己掌管的星座，**${methods[p.name]}**本身就是这部分生活的重要手段，较能按自己的方式组织它。 ${linkText}`:`${names[p.name]}在${signs[signIndex(p)]}，由${names[host.name]}定位。换成生活里的意思：想要${methods[p.name]}，落实时的做法是**${methods[host.name]}**。这件事主要发生在${venues[host.house-1]}，因为${names[host.name]}落在第${host.house}宫。${hs.dignities.length?`${names[host.name]}有${hs.dignities.join('、')}，使这种做法较有发挥条件。`:''}${hs.detriment||hs.fall?`${names[host.name]}也有失势或落陷，这条路径容易遇到不同规则或期待，需要先确认自己能决定什么、哪些事必须协商。`:''}${hs.p.retrograde?`${names[host.name]}逆行，推进时较可能反复修改做法；适合留下调整余地。`:''}${host.name==='Mars'&&!hs.sect?'火星不属本盘阵营，主动争取的同时尤其需要控制冲突与过度消耗。':host.name==='Saturn'&&!hs.sect?'土星不属本盘阵营，责任和等待需要设定边界，避免把持续承担变成无法停下。':''} ${linkText}`,
-      `可以从一件具体的事开始：**${actions[i]}**。${p.house!==h?`同时留意${venues[p.house-1]}会怎样参与这件事，把这条宫主星联系用到实际安排里。`:''}${h===6?'这里描述劳务、精力与日常负担，不从星体状态推断疾病。':''}`
-    ]};
-  }).sort((a,b)=>b.importance-a.importance||a.house-b.house);
-  return [{title:`整张盘的主线 · ${day?'昼盘':'夜盘'}中的资源与落实条件`,evidence:`太阳几何高度${altitude.toFixed(2)}° · 命主星${names[ascLord.name]}第${ascLord.house}宫`,paragraphs:[
-    `出生时太阳在地平线${day?'上':'下'}方，因此这是**${day?'昼盘':'夜盘'}**。${day?'太阳、木星、土星属于昼间阵营；土星的约束较容易被规则承接，火星的急切则较需要管理。':'月亮、金星、火星属于夜间阵营；火星的行动较容易获得承接，土星的压力则较需要缓冲。'}这不是吉凶结论，而是判断同一颗星为什么在不同盘中需要不同处理方式的起点。`,
-    `本盘优先阅读**${cards.slice(0,3).map(c=>topics[c.house-1]).join('、')}**。命主星${names[ascLord.name]}落第${ascLord.house}宫，使${topics[ascLord.house-1]}成为连接自我与生活条件的一条主线。下面每个主题都会同时回答：负责它的行星有没有资源、在哪里落实，以及谁能承接它。`,
-    '采用七星宫主星、入庙与失势、擢升与落陷、多罗修斯昼夜及参与三分主星、角续果宫、逆行和太阳距离，并在主要相位中判断庙与擢升接纳。星级表示关注重点，不以尊贵分数预测人生结果。界、面、入相出相与完整海兹尚未纳入；水星不按太阳前后方粗略归入昼夜阵营。'
-  ]},...cards];
-}
-
-Object.assign(exports,{classicalConditions,classicalNarrative});
-});
 __define("src/western/westernApp.js",function(exports,__require){
+const {chartDataHTML}=__require("src/western/chartViews.js");
+const {planetDetails}=__require("src/western/planetDetails.js");
 const {placePlanetSymbols}=__require("src/western/planetSymbolLayout.js");
 const {planetSymbol}=__require("src/western/planetSymbols.js");
 const {natalReading,natalFocus,transitReading,transitFocus,readingHTML,readingNote}=__require("src/western/interpretation.js");
@@ -719,26 +795,46 @@ const signs=['白羊座','金牛座','双子座','巨蟹座','狮子座','处女
 const zodiac=['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
 const $=id=>document.getElementById(id);
 function position(value) {const p=splitLongitude(value);return `${signs[p.signIndex]} ${p.degree}°${String(p.arcminute).padStart(2,'0')}′${String(p.arcsecond).padStart(2,'0')}″`;}
-let chart,astrologyMode="modern";
-function wheel(c) {
+let chart,astrologyMode="modern",workspaceView="wheel";const chartHosts=new Set();
+function wheel(c,natalOverlay=null) {
   const size=620,center=310,aspectRadius=165;
   const point=(longitude,r)=>{const a=(180+(longitude-c.asc))*Math.PI/180;return [center+r*Math.cos(a),center-r*Math.sin(a)];};
   const line=(a,b,style)=>`<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" ${style}/>`;
   const text=(p,t,extra='')=>`<text x="${p[0]}" y="${p[1]}" text-anchor="middle" dominant-baseline="middle" ${extra}>${t}</text>`;
-  let svg=`<svg viewBox="0 0 ${size} ${size}" role="img" aria-label="西洋占星本命盘"><g fill="none" stroke="var(--gold)"><circle cx="310" cy="310" r="287"/><circle cx="310" cy="310" r="250"/><circle cx="310" cy="310" r="230" stroke-width=".8" opacity=".65"/><circle cx="310" cy="310" r="165"/></g>`;
+  let svg=`<svg viewBox="0 0 ${size} ${size}" role="group" aria-label="西洋占星本命盘"><g fill="none" stroke="var(--gold)"><circle cx="310" cy="310" r="287"/><circle cx="310" cy="310" r="250"/><circle cx="310" cy="310" r="230" stroke-width=".8" opacity=".65"/><circle cx="310" cy="310" r="165"/></g>`;
   for(let d=0;d<360;d+=5)svg+=line(point(d,d%30===0?250:280),point(d,287),'stroke="var(--gold)" stroke-width="1" opacity=".5"');
   const zodiacColors=['#b94e59','#427b53','#ad841d','#426fae'];
   zodiac.forEach((s,i)=>{const position=point(i*30+15,268);position[1]+=3;svg+=text(position,s+'\uFE0E',`class="western-zodiac-symbol" font-size="23" font-weight="400" font-family="Arial, Apple Symbols, Segoe UI Symbol, sans-serif" fill="${zodiacColors[i%4]}"`);});
   c.cusps.forEach((d,i)=>{svg+=line(point(d,aspectRadius),point(d,250),`stroke="var(--gold)" stroke-width="${i%3===0?2:1}" opacity=".5"`);});
   const byName=Object.fromEntries(c.planets.map(p=>[p.name,p]));
   const aspectColors={0:'#b69b6a',60:'#829b87',90:'#bf8588',120:'#829fc0',150:'#9b92aa',180:'#b8738b'};
-  c.aspects.forEach(a=>{const major=[0,60,90,120,180].includes(a.angle);svg+=line(point(byName[a.a].longitude,aspectRadius),point(byName[a.b].longitude,aspectRadius),`class="western-aspect" data-angle="${a.angle}" stroke="${aspectColors[a.angle]||'#9b92aa'}" stroke-width="${major?1.7:1.2}" opacity="${major?.66:.32}"`);});
+  if(natalOverlay){
+   const hits=c.planets.filter(p=>glyphs[p.name]).flatMap(p=>planetDetails(c,p.name,{natal:natalOverlay}).aspects.filter(a=>a.other!=='MC').map(a=>({...a,planet:p}))).sort((a,b)=>a.orb-b.orb).slice(0,24);
+   for(const a of hits){const n=natalOverlay.planets.find(p=>p.name===a.other);svg+=line(point(a.planet.longitude,aspectRadius),point(n.longitude,aspectRadius),`class="western-aspect western-cross-aspect" data-angle="${a.angle}" stroke="${aspectColors[a.angle]}" stroke-width="1.7" opacity=".55"`);}
+   svg+='<circle cx="310" cy="310" r="200" fill="none" stroke="var(--line)" stroke-width=".7"/>';
+  }else c.aspects.forEach(a=>{const major=[0,60,90,120,180].includes(a.angle);svg+=line(point(byName[a.a].longitude,aspectRadius),point(byName[a.b].longitude,aspectRadius),`class="western-aspect" data-angle="${a.angle}" stroke="${aspectColors[a.angle]||'#9b92aa'}" stroke-width="${major?1.7:1.2}" opacity="${major?.66:.32}"`);});
   // House numbers sit in their own annulus, centered on the actual cusp interval.
   c.cusps.forEach((d,i)=>{svg+=text(point(norm(d+norm(c.cusps[(i+1)%12]-d)/2),240),i+1,'class="western-house-number" font-size="13" fill="var(--muted)" stroke="var(--paper,#f7f8fd)" stroke-width="4" stroke-linejoin="round" paint-order="stroke"');});
-  const placements=placePlanetSymbols(c.planets.filter(p=>glyphs[p.name]),point);
-  for(const {planet:p,position:label} of placements){const anchor=point(p.longitude,aspectRadius),dx=label[0]-anchor[0],dy=label[1]-anchor[1],length=Math.hypot(dx,dy),end=length>16?[label[0]-dx/length*16,label[1]-dy/length*16]:label;svg+=line(anchor,end,'stroke="var(--muted)" stroke-width=".8" opacity=".45"');svg+=planetSymbol(p.name,label);}
+  const layers=natalOverlay?[{chart:natalOverlay,key:'natal',radius:182},{chart:c,key:'transit',radius:216}]:[{chart:c,key:'chart',radius:null}];
+  for(const layer of layers){const placements=placePlanetSymbols(layer.chart.planets.filter(p=>glyphs[p.name]),layer.radius?(d,r)=>point(d,layer.radius):point);
+  for(const {planet:p,position:label} of placements){const anchor=point(p.longitude,natalOverlay?(layer.key==='natal'?166:229):aspectRadius),dx=label[0]-anchor[0],dy=label[1]-anchor[1],length=Math.hypot(dx,dy),end=length>16?[label[0]-dx/length*16,label[1]-dy/length*16]:label;svg+=line(anchor,end,'stroke="var(--muted)" stroke-width=".8" opacity=".4"');svg+=`<g class="western-planet-hit" data-planet-name="${p.name}" data-layer="${layer.key}" data-x="${label[0]}" data-y="${label[1]}" role="button" tabindex="0" aria-label="查看${layer.key==='natal'?'本命':layer.key==='transit'?'行运':''}${names[p.name]}" aria-pressed="false"><circle cx="${label[0]}" cy="${label[1]}" r="${natalOverlay?28:38}" fill="transparent" pointer-events="all"/>${planetSymbol(p.name,label)}</g>`;}}
   svg+=text(point(c.asc,298),'ASC','font-size="11" fill="var(--gold2)"');svg+=text(point(c.mc,298),'MC','font-size="11" fill="var(--gold2)"');
   return svg+'</svg>';
+}
+function drawInteractive(host,c,{natal=null,transit=false,overlay=false}={}){
+ const previous=host.dataset.selectedPlanet;for(const item of chartHosts)if(!item.host.isConnected)chartHosts.delete(item);for(const item of chartHosts)if(item.host===host)chartHosts.delete(item);chartHosts.add({host,chart:c,natal});host.innerHTML=wheel(c,overlay?natal:null);const svg=host.querySelector('svg');if(transit)svg.setAttribute('aria-label','行运行星落入本命宫位');
+ const panel=document.createElement('section');panel.className='western-planet-detail';panel.hidden=true;panel.setAttribute('aria-live','polite');panel.setAttribute('aria-label','行星详情');host.append(panel);
+ const dataView=document.createElement('div');dataView.className='western-data-view';dataView.innerHTML=chartDataHTML(c,{natal});dataView.hidden=workspaceView==='wheel';svg.classList.add('western-main-wheel');svg.hidden=workspaceView!=='wheel';svg.style.display=workspaceView==='wheel'?'':'none';host.append(dataView);host.dataset.westernView=workspaceView;const groups=[...svg.querySelectorAll('.western-planet-hit')];
+ const aspectPanel=document.createElement('section');aspectPanel.className='wv-aspect-detail';aspectPanel.hidden=true;aspectPanel.setAttribute('aria-live','polite');dataView.append(aspectPanel);
+ dataView.addEventListener('click',event=>{const button=event.target.closest('.wv-aspect-hit');if(!button)return;const wasSelected=button.getAttribute('aria-pressed')==='true';for(const cell of dataView.querySelectorAll('.wv-aspect-hit'))cell.setAttribute('aria-pressed','false');aspectPanel.hidden=wasSelected;if(!wasSelected){button.setAttribute('aria-pressed','true');aspectPanel.textContent=button.getAttribute('aria-label');}});
+ function choose(name,layer='chart'){const isNatal=overlay&&layer==='natal',selectedChart=isNatal?natal:c;const detail=planetDetails(selectedChart,name,{natal:isNatal?null:natal,housesFromNatal:overlay||!transit});if(!detail)return;host.dataset.selectedPlanet=name;host.dataset.selectedLayer=layer;for(const g of groups)g.setAttribute('aria-pressed',String(g.dataset.planetName===name&&g.dataset.layer===layer));panel.hidden=false;
+ const ruled=detail.ruledHouses.length?detail.ruledHouses.map(h=>'第'+h+'宫').join('、'):'无';
+ panel.innerHTML=`<header><h3>${overlay?(isNatal?'本命 · ':'行运 · '):''}${names[name]}</h3><button type="button" aria-label="关闭行星详情">×</button></header><div class="wp-facts"><span>${position(detail.longitude)}</span><span>${detail.transit?(overlay?'行运落本命':'行运落'):'落'}第${detail.house}宫 · ${detail.retrograde?'逆行':'顺行'}</span><span>${detail.transit?(overlay?'主宰本命宫位':'主宰行运宫位'):'主宰宫位'}：${ruled}</span></div><div class="wp-aspects"><h4>${detail.transit?'与本命的主要相位':'主要相位'}</h4>${detail.aspects.length?detail.aspects.map(a=>`<div><span>${a.scope==='natal'?'本命':''}${names[a.other]||'天顶'} · ${a.label}</span><small>偏差 ${a.orb.toFixed(2)}° / 容许度 ${a.limit}°</small></div>`).join(''):'<p>当前容许度内无主要相位</p>'}</div>`;
+ panel.querySelector('button').onclick=()=>{panel.hidden=true;delete host.dataset.selectedPlanet;for(const g of groups)g.setAttribute('aria-pressed','false');};
+ }
+ svg.addEventListener('click',event=>{if(!event.target.closest('.western-planet-hit'))return;const rect=svg.getBoundingClientRect(),box=svg.viewBox.baseVal,x=box.x+(event.clientX-rect.left)/rect.width*box.width,y=box.y+(event.clientY-rect.top)/rect.height*box.height;const nearest=groups.map(g=>({g,d:Math.hypot(x-Number(g.dataset.x),y-Number(g.dataset.y))})).sort((a,b)=>a.d-b.d)[0];if(nearest)choose(nearest.g.dataset.planetName,nearest.g.dataset.layer);});
+ for(const g of groups)g.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();choose(g.dataset.planetName,g.dataset.layer);}});
+ if(previous&&c.planets.some(p=>p.name===previous))choose(previous,host.dataset.selectedLayer||'chart');
 }
 function readInput(){return {transitOrb:Number(document.getElementById('mwTransitOrb')?.value??3),aspectOrbs:Object.fromEntries([...document.querySelectorAll('[data-western-orb]')].map(s=>[s.dataset.westernOrb,Number(s.value)])),astrologyMode,place:$('wPlace').value,date:$('wDate').value,time:$('wTime').value,offset:$('wOffset').value.trim(),latitude:$('wLatitude').value,longitude:$('wLongitude').value,system:$('wSystem').value,nodeType:$('wNode').value,residence:window.magiccatResidence?.get()||null};}
 function render() {
@@ -747,12 +843,8 @@ function render() {
   $('wClassical').setAttribute('aria-pressed',String(astrologyMode==='classical'));
   $('wModeNote').textContent=astrologyMode==='classical'?'古典模式：默认阿卡比宫制，以日月与五颗行星、七星宫主星及主要相位展开解读；保留南北交点。结合昼夜盘、尊贵与失势、角续果宫、逆行、太阳距离及庙与擢升接纳判断。':'现代模式：默认普拉西德宫制，包含天王星、海王星、冥王星与相关相位。切换后可自行调整宫制。';
   $('wSummary').textContent=`${chart.input.date} ${chart.input.time} · UTC${chart.input.offset} · 纬度 ${chart.input.latitude} / 经度 ${chart.input.longitude} · Tropical / ${chart.input.system} / ${chart.input.nodeType==='true'?'True Node（近似）':'Mean Node'} · UTC ${chart.utc}`;
-  $('wWheel').innerHTML=wheel(chart);
+  drawInteractive($('wWheel'),chart);
   $('wAngles').innerHTML=`<p>ASC 上升：${position(chart.asc)}</p><p>MC 天顶：${position(chart.mc)}</p><p>DSC 下降：${position(norm(chart.asc+180))}</p><p>IC 天底：${position(norm(chart.mc+180))}</p>`;
-  $('wPlanets').innerHTML=chart.planets.map(p=>`<tr><td>${names[p.name]}</td><td>${position(p.longitude)}</td><td>${p.longitude.toFixed(6)}°</td><td>${p.house} 宫</td><td>${p.retrograde?'逆行 ℞':'顺行'}</td></tr>`).join('');
-  $('wHouses').innerHTML=chart.cusps.map((d,i)=>`<div><b>第 ${i+1} 宫</b>${position(d)}<br>${d.toFixed(6)}°</div>`).join('');
-  const aspectNote=$('wAspects').closest('section').querySelector('.note');if(aspectNote)aspectNote.textContent='容许度：'+[[0,'合相'],[60,'六合'],[90,'刑相'],[120,'拱相'],[180,'对冲']].map(([a,n])=>n+' '+(chart.input.aspectOrbs?.[a]??({0:8,60:4,90:6,120:6,180:8})[a])+'°').join('，')+'。交点不参与此相位表。';
-  $('wAspects').innerHTML=chart.aspects.sort((a,b)=>a.orb-b.orb).map(a=>`<tr><td>${names[a.a]}</td><td>${a.label} ${a.angle}°</td><td>${names[a.b]}</td><td>${a.orb.toFixed(3)}°</td></tr>`).join('');
   let interpretation=$('wInterpretation');if(!interpretation){interpretation=document.createElement('div');interpretation.id='wInterpretation';$('wResult').append(interpretation);}interpretation.innerHTML=readingHTML(astrologyMode==='classical'?'古典本命盘 · 资源与落实条件':'本命盘 · 从全局到重点',astrologyMode==='classical'?classicalNarrative(chart):natalNarrative(chart))+readingNote;
   $('wResult').hidden=false;
 }
@@ -764,6 +856,8 @@ $('wExport').onclick=()=>{if(!chart)return;const url=URL.createObjectURL(new Blo
 
 
 window.magiccatAstrology={
+ setView(value){workspaceView=value==='data'?'data':'wheel';for(const item of chartHosts){if(!item.host.isConnected){chartHosts.delete(item);continue;}const svg=item.host.querySelector('.western-main-wheel'),data=item.host.querySelector('.western-data-view');svg.style.display=workspaceView==='wheel'?'':'none';data.hidden=workspaceView==='wheel';item.host.dataset.westernView=workspaceView;const detail=item.host.querySelector('.western-planet-detail');if(workspaceView==='data'&&detail)detail.hidden=true;}},
+
  scanFinanceWindows,
  openNatal(input){this.restore(input);chart=calculateWesternChart(input);render();},
  relocation(natal,destination){return calculateRelocation(natal,destination);},
@@ -772,8 +866,8 @@ window.magiccatAstrology={
 
  getInput:readInput,
  transitInterpretation(natal,target){const birth=calculateWesternChart(natal),current=calculateWesternChart(target);const themes=transitThemes(birth,current,{mode:'unified'});return readingHTML('行运 · 当前最重要的相位',themes.length?themes:[{title:'当前没有符合范围的主要相位',text:'可以比较其他日期。'}])+readingNote+'<p class="note">最多展示4个相位，按重要性星级、再按综合权重排序。星级考虑行运行星节奏、被触及的本命星体、领域关系与相位偏差，不表示吉凶。持续时间是同一相位在当前行运容许度内的本次连续区间，按行运时区显示，边界为近似值；逆行后再次进入另计。长期按日扫描、短期按小时扫描，最多前后各2年或180天。</p>';},
- draw(input,host){host.innerHTML=wheel(calculateWesternChart(input));},
- drawTransit(natal,target,host){host.innerHTML=wheel(calculateWesternTransit(natal,target)).replace('aria-label="西洋占星本命盘"','aria-label="行运行星落入本命宫位"');},
+ draw(input,host){drawInteractive(host,calculateWesternChart(input));},
+ drawTransit(natal,target,host){const overlay=document.getElementById('mwTransitView')?.value!=='standalone';drawInteractive(host,overlay?calculateWesternTransit(natal,target):calculateWesternChart(target),{natal:calculateWesternChart(natal),transit:true,overlay});if(!overlay)host.querySelector('svg').setAttribute('aria-label','独立行运盘');},
  transitPositions(natal,target){return calculateWesternTransit(natal,target).planets.map(p=>({name:names[p.name],longitude:p.longitude,retrograde:p.retrograde,house:p.house}));},
  restore(input){if(document.getElementById('mwTransitOrb'))document.getElementById('mwTransitOrb').value=String(input.transitOrb??3);for(const control of document.querySelectorAll('[data-western-orb]'))control.value=String(input.aspectOrbs?.[control.dataset.westernOrb]??control.dataset.defaultOrb);astrologyMode=input.astrologyMode==='classical'?'classical':'modern';for(const [key,id] of Object.entries({date:'wDate',time:'wTime',place:'wPlace',offset:'wOffset',latitude:'wLatitude',longitude:'wLongitude',system:'wSystem',nodeType:'wNode'}))if(input[key]!==undefined)$(id).value=input[key];$('wPlace').setCustomValidity('');window.magiccatResidence?.set(input.residence||null);},
  positions(input){return calculateWesternChart(input).planets.map(p=>({name:names[p.name],longitude:p.longitude,retrograde:p.retrograde}));}

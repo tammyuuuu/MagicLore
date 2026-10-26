@@ -19,10 +19,110 @@ html body.ml-module #matchView .relationship-quick :is(small,span){color:#625d7c
 html body.ml-module #matchView .relationship-quick b{color:#6156ae!important}
 html body.ml-module #matchView :is(.pair-card,.relation-card){background:#fff!important;color:#292b50!important}
 html body.ml-module #matchView :is(.pair-card,.relation-card) p{color:#514e69!important}
-.nm-pair-choice .nm-save-pair{grid-column:1/-1;justify-self:center}
+
 
 html body.ml-module #matchView .difference-grid{background:transparent!important;gap:8px!important}
 html body.ml-module #matchView .difference-grid>p{background:#f0eef8!important;color:#514e69!important;border:1px solid #e2deed;border-radius:10px;padding:14px!important;margin:0!important}
 html body.ml-module #matchView .difference-grid>p>b{color:#6156ae!important}
 
-html body.ml-module .nm-pair-choice .nm-save-pair{grid-column:1/-1;justify-self:center;min-width:144px;min-height:40px!important;margin:6px 0 2px;padding:8px 22px!important;border:0!important;border-radius:10px!important;background:#e9e6f7!important;color:#6156ae!important;box-shadow:none!important;font-size:14px!important}
+
+/* Life numerology: direct reading flow, no accordion wrappers. */
+html body.ml-module.nm-enabled #report>.nm-core{padding:8px 0 10px;border:0;gap:4px}
+html body.ml-module.nm-enabled .nm-number{min-height:92px!important;padding:10px 2px!important;gap:5px;border:0!important;border-radius:10px!important}
+html body.ml-module.nm-enabled .nm-number[aria-pressed=true]{background:#eae6f7!important}
+html body.ml-module.nm-enabled .nm-number>span{font-size:13px;line-height:1.5;color:#625d7c}
+html body.ml-module.nm-enabled .nm-number>b{font-size:34px;line-height:1.15}
+html body.ml-module.nm-enabled .nm-number>small{font-size:11px!important}
+html body.ml-module.nm-enabled #report>.nm-core-brief{padding:14px!important;margin:0 0 12px!important;border:1px solid #e2deef;border-radius:12px;background:#f0eef8}
+html body.ml-module.nm-enabled #report>.section{padding:16px 0!important;margin:0!important;min-width:0}
+html body.ml-module.nm-enabled #report :is(.nm-core-brief, #energy,#cycles,#year) h2{font-size:18px!important;line-height:1.5!important;margin:0 0 10px!important}
+html body.ml-module.nm-enabled #report :is(.nm-core-brief,#energy,#cycles,#year) h3{font-size:16px!important;line-height:1.6!important}
+html body.ml-module.nm-enabled #report :is(.nm-core-brief,#energy,#cycles,#year) p{font-size:15px!important;line-height:1.85!important;letter-spacing:0!important;margin:8px 0!important;color:#514d68}
+html body.ml-module.nm-enabled #energy .energy-layout{display:block!important;margin:8px 0!important}
+html body.ml-module.nm-enabled #energy .star-field{width:100%;max-width:100%;height:225px!important;min-height:0!important;aspect-ratio:auto;background:transparent!important;margin:0}
+html body.ml-module.nm-enabled #energy .digit-star{background:transparent!important;border:0!important;box-shadow:none!important;min-height:44px!important}
+#energy .digit-star b{font-size:27px}#energy .digit-star em{font-size:12px}#energy .digit-star:not(.present){opacity:.6}
+html body.ml-module.nm-enabled #energyDetail{min-height:0!important;padding:12px!important;border:0!important;border-radius:10px!important;background:#edf0f8!important}
+#energyDetail .giant{font-size:25px}#energyDetail .subhead{font-size:14px;margin-top:12px}
+html body.ml-module.nm-enabled #energy .missing{font-size:14px;line-height:1.8;margin:12px 0;padding:8px 0;color:#625d7c}
+html body.ml-module.nm-enabled #cycles .timeline{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:12px 0 8px;gap:4px}
+#cycles .timeline:before{display:none}
+html body.ml-module.nm-enabled #cycles .era{padding:7px 1px!important;border:0!important;background:transparent!important;box-shadow:none!important;min-width:0}
+html body.ml-module.nm-enabled #cycles .era .node{display:grid;place-items:center;width:44px;height:44px;background:#eeebf8;color:#6156ae;border-color:#d7d0e9;box-shadow:none}
+html body.ml-module.nm-enabled #cycles .era.selected .node{background:#ddd6f1;border-color:#a89bc9}
+#cycles .era small{font-size:12px!important;line-height:1.6;color:#625d7c}
+#cycles .challenge-line{font-size:12px;color:#625d7c}#cycles .challenge-line b{font-size:16px;color:#6156ae}
+html body.ml-module.nm-enabled #cycleDetail{padding:12px!important;margin:12px 0 0;border:0!important;border-radius:10px!important;background:#edf0f8!important}
+html body.ml-module.nm-enabled #year .year-layout{display:block!important}
+#year .year-number{font-size:42px;text-align:left;line-height:1.3;margin:8px 0;color:#6156ae}#year .year-number small{display:inline;margin-left:10px;font-size:13px;color:#625d7c;letter-spacing:0}
+html body.ml-module.nm-enabled #report :is(#energy,#cycles,#year) .keywords{margin:8px 0;gap:6px}
+html body.ml-module.nm-enabled #report :is(#energy,#cycles,#year) .keywords span{font-size:13px;padding:4px 8px;color:#6156ae;background:#eae7f6;border:0;border-radius:7px}
+#year .subhead{font-size:14px;letter-spacing:0;margin-top:14px}
+
+/* Match profiles share the top workspace row; save replaces the add action. */
+html body.ml-module.nm-enabled .mc-person-row>.nm-pair-choice{display:grid;grid-template-columns:minmax(0,1fr) 12px minmax(0,1fr);gap:5px;flex:1;min-width:0;margin:0;align-items:center}
+html body.ml-module.nm-enabled .mc-person-row>.nm-pair-choice[hidden]{display:none!important}
+.nm-enabled .mc-person-row>.nm-pair-choice label{display:block;min-width:0;font-size:0}
+html body.ml-module.nm-enabled .mc-person-row>.nm-pair-choice select{font-size:14px!important;font-weight:500;min-height:44px!important;padding:6px 1px!important;border:0!important;background:transparent!important;border-radius:0!important;max-width:100%}
+.nm-enabled .mc-person-row>.nm-pair-choice>span{font-size:13px;color:var(--muted)}
+html body.ml-module.nm-enabled .mc-person-row>.nm-save-pair{flex:0 0 auto;min-width:48px;min-height:40px!important;padding:6px 9px!important;margin:0;border:0!important;border-radius:10px!important;background:#e9e6f7!important;color:#6156ae!important;box-shadow:none!important;font-size:13px!important;white-space:nowrap}
+
+/* Compact relationship workspace: compare, focus, then annual rhythm. */
+.nr-report{padding-top:8px}.nr-core{padding:14px 12px;background:#f0eef8;border:1px solid #e2deef;border-radius:12px}
+.nr-core-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;text-align:center}.nr-core-pair>div{display:flex;flex-direction:column;align-items:center;min-width:0;gap:3px}.nr-person-name{max-width:100%;font-size:13px;line-height:1.5;color:#625d7c;overflow-wrap:anywhere}.nr-life-number{font-size:34px;line-height:1.2;color:#6156ae;font-weight:500}.nr-life-label{font-size:12px;color:#625d7c;line-height:1.5}
+.nr-number-rows{margin:12px 0 0;border-top:1px solid #dfdaed;padding-top:6px}.nr-number-rows>div{display:grid;grid-template-columns:1fr 80px 1fr;text-align:center;align-items:center;padding:3px 0;font-size:15px;color:#49415e}.nr-number-rows small{font-size:12px;color:#736b87}
+html body.ml-module.nm-enabled #matchView .nr-summary{font-size:15px!important;line-height:1.8!important;color:#49415e;margin:12px 0 0!important;padding-top:10px;border-top:1px solid #dfdaed}
+.nr-tabs{display:flex;margin-top:12px;border-bottom:1px solid var(--line)}
+html body.ml-module.nm-enabled .nr-tabs button{flex:1;padding:10px 4px!important;border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;background:transparent!important;color:#726984!important;font-size:14px!important;min-height:44px!important}
+html body.ml-module.nm-enabled .nr-tabs button[aria-selected=true]{border-bottom-color:#8070bf!important;color:#6156ae!important;font-weight:600}
+.nr-panel{padding:0 2px}.nr-point{padding:14px 0;border-bottom:1px solid #e3dfed}
+html body.ml-module.nm-enabled #matchView .nr-point h3{font-size:16px!important;line-height:1.65!important;margin:0 0 7px!important;color:#49415e}
+html body.ml-module.nm-enabled #matchView :is(.nr-point,.nr-year) p{font-size:14px!important;line-height:1.85!important;margin:7px 0!important;color:#514d68;letter-spacing:0!important}
+.nr-point details{margin-top:5px}.nr-point details>summary{font-size:13px!important;padding:7px 0!important;min-height:36px!important;color:#746990!important}.nr-source{padding:8px 10px;background:#edf0f8;border-radius:8px;font-size:12px!important}
+.nr-year{margin-top:18px;padding:14px 12px;background:#edf0f8;border-radius:12px}.nr-year-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+html body.ml-module.nm-enabled .nr-year-head h2{font-size:17px!important;margin:0!important}.nr-year-switch{display:flex;align-items:center;gap:6px;font-size:15px;color:#6156ae}
+html body.ml-module.nm-enabled .nr-year-switch button{width:36px;min-height:40px!important;background:transparent!important;border:0!important;padding:4px!important;font-size:18px!important}
+.nr-year-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:8px}.nr-year-pair>div{min-width:0}.nr-year-pair span{font-size:12px;color:#625d7c;overflow-wrap:anywhere}.nr-year-pair b{display:block;font-size:28px;line-height:1.4;font-weight:500;color:#6156ae}
+html body.ml-module.nm-enabled #matchView .nr-year-note{font-size:12px!important;color:#746e85}
+
+.nr-core-pair>.nr-merged,.nr-year-pair>.nr-merged,.nr-number-rows .nr-shared-value{grid-column:1/-1}.nr-year-pair>.nr-merged{text-align:center}.nr-shared-value{font-size:13px;color:#625d7c}
+
+.nm-year-inline{display:flex;align-items:center;gap:12px;margin:8px 0 12px;min-width:0}.nm-year-digit{flex:0 0 auto;font-size:36px;line-height:1.2;font-weight:500;color:#6156ae}html body.ml-module.nm-enabled #report #year .nm-year-inline .keywords{display:flex;flex-wrap:nowrap;gap:5px;margin:0;min-width:0}html body.ml-module.nm-enabled #report #year .nm-year-inline .keywords span{white-space:nowrap;font-size:13px;padding:4px 7px}
+
+html body.ml-module.nm-enabled #report #year .nm-year-inline .keywords{position:relative;top:3px}
+
+html body.ml-module.nm-enabled #cycles .timeline{align-items:stretch;gap:4px}
+html body.ml-module.nm-enabled #cycles .era{display:flex;flex-direction:column;align-items:center;align-self:stretch;justify-content:flex-start;gap:4px;width:100%;height:100%;padding:10px 2px!important;border-radius:10px!important;cursor:pointer}
+html body.ml-module.nm-enabled #cycles .era.selected{background:#eeebf8!important}
+#cycles .era .node{flex-shrink:0}
+#cycles .era small{display:block;margin:2px 0 0}
+#cycles .nm-stage-challenge{margin-top:8px;padding-top:4px;font-size:12px;line-height:1.6;color:#625d7c;width:100%;text-align:center}
+#cycles .nm-stage-challenge b{display:block;font-size:17px;font-weight:600;color:#6156ae;margin-top:3px}
+
+/* One interactive map for core roles and raw birth-digit frequency. */
+html body.ml-module.nm-enabled #energy .nm-unified-grid{position:static;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;height:auto!important;min-height:0!important;margin:10px 0 12px;isolation:auto}
+#energy .nm-unified-grid:before,#energy .nm-unified-grid:after{display:none}
+html body.ml-module.nm-enabled #energy .nm-unified-node{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:5px;min-width:0;min-height:88px!important;padding:8px 3px!important;border:1px solid #e4e0ef!important;border-radius:12px!important;background:transparent!important;color:#847d9e!important;box-shadow:none!important}
+html body.ml-module.nm-enabled #energy .nm-unified-node.nm-present{color:#6156ae!important;background:#f0eef8!important}
+html body.ml-module.nm-enabled #energy .nm-unified-node.nm-core-node{border-color:#c5badd!important;color:#6156ae!important}
+html body.ml-module.nm-enabled #energy .nm-unified-node[aria-pressed=true]{background:#e8e3f6!important;border-color:#a497c9!important}
+.nm-node-value{display:flex;align-items:center;justify-content:center;gap:6px;font-size:29px;line-height:1.2}
+html body.ml-module.nm-enabled #energy .nm-node-value small{font-size:11px;line-height:1.5;font-weight:400;color:#746b8c}
+.nm-node-roles{display:flex;flex-wrap:wrap;justify-content:center;gap:3px;min-height:17px}
+.nm-node-roles>span{font-size:11px;line-height:1.5;padding:1px 4px;border-radius:4px;background:#e7e1f3;color:#625386}
+html body.ml-module.nm-enabled #energyDetail h3{margin:12px 0 5px!important}html body.ml-module.nm-enabled #energyDetail h3:first-child{margin-top:0!important}
+#energyDetail details>summary{font-size:13px;min-height:40px;padding:9px 0!important}
+
+html body.ml-module.nm-enabled #matchView .nr-shared-title{font-size:15px;line-height:1.6;font-weight:500;color:#6156ae;margin:14px 0 5px}
+
+/* Shared reading typography: digit meanings, life stages, and personal year. */
+html body.ml-module.nm-enabled #report :is(#energyDetail,#cycleDetail,#year .year-layout) :is(h3,.subhead){font-family:var(--ui-font)!important;font-size:16px!important;font-weight:600!important;line-height:1.6!important;letter-spacing:0!important;color:#292b50!important;margin:12px 0 5px!important}
+html body.ml-module.nm-enabled #report :is(#energyDetail,#cycleDetail,#year .year-layout) h3:first-child{margin-top:0!important}
+html body.ml-module.nm-enabled #report :is(#energyDetail,#cycleDetail,#year .year-layout) p{font-family:var(--ui-font)!important;font-size:15px!important;line-height:1.85!important;letter-spacing:0!important;color:#514d68!important;margin:8px 0!important}
+
+html body.ml-module.nm-enabled #report #year .year-layout{padding:12px!important;border:0!important;border-radius:10px!important;background:#edf0f8!important;margin-top:10px;min-width:0}
+
+html body.ml-module.nm-enabled #energy .nm-unified-grid{justify-items:center;gap:9px}
+html body.ml-module.nm-enabled #energy .nm-unified-node{width:100%;max-width:124px;aspect-ratio:1;height:auto;min-height:0!important;border-radius:50%!important;justify-content:center;padding:8px 3px!important;gap:5px}
+#energy .nm-unified-node .nm-node-roles{gap:2px;max-width:100%;min-height:16px}
+#energy .nm-unified-node .nm-node-roles>span{font-size:10px;padding:1px 3px}
