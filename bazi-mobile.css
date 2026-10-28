@@ -19,3 +19,52 @@ body.ml-module.bm-enabled .work-head{display:none!important}
 .ml-module.bm-enabled #monthPanel .fortune-grid{grid-template-columns:repeat(12,minmax(0,1fr))!important;row-gap:0!important}.ml-module.bm-enabled #monthPanel .fortune-card .pair strong{font-size:15px!important}.ml-module.bm-enabled #monthPanel .fortune-card .pair small{font-size:9px!important}.ml-module.bm-enabled #monthPanel .fortune-card :is(b,.date){font-size:9px!important}.ml-module.bm-enabled .mc-person-row>label{margin:0!important}.ml-module.bm-enabled #monthPanel>h3{font-size:12px!important;margin:4px 3px 2px!important}@media(max-width:350px){.ml-module.bm-enabled #monthPanel .fortune-card .pair strong{font-size:13px!important}.ml-module.bm-enabled #monthPanel .fortune-card .pair small{font-size:8px!important}.ml-module.bm-enabled #monthPanel .fortune-card :is(b,.date){font-size:8px!important}}
 /* Keep the now-visible month row within the compact workspace. */
 .ml-module.bm-enabled .bm-birth{padding:0!important}.ml-module.bm-enabled .mc-settings{padding:0!important;border:0!important}.ml-module.bm-enabled .mc-mode-row{padding:0!important;margin-top:0!important}.ml-module.bm-enabled .bazi-overview #luck .luck-row{padding-bottom:0!important}.ml-module.bm-enabled #luck .pair>span{font-size:11px!important;line-height:1.1!important}.ml-module.bm-enabled .bazi-overview #chart.reference-plate :is(th,td){padding-top:3px!important;padding-bottom:3px!important}.ml-module.bm-enabled .bazi-overview #chart .plate-character{font-size:24px!important}.ml-module.bm-enabled #chart .plate-hidden{min-height:17px}.ml-module.bm-enabled #luck :is(#annualDetail,#monthPanel)>h3{margin:4px 3px 2px!important}.ml-module.bm-enabled #monthPanel{margin-top:3px!important}
+
+/* The tab underline already separates the reference reading. */
+html body.ml-module.bm-enabled .bm-reference #baziReading{border-top:0!important;margin-top:0!important;padding-top:0!important}
+html body.ml-module.bm-enabled .bm-reference{padding-top:12px!important}
+
+
+/* Keep the top spacing inside the page background instead of collapsing outward. */
+html:has(body.bm-enabled){background:#d8d4e8!important}
+html body.ml-module.bm-enabled .mc-context{margin-top:0!important;padding-top:8px;background:transparent!important}
+
+
+/* Phone reading rhythm for the Bazi reference page. */
+html body.ml-module.bm-enabled .bm-reference{padding:14px 12px 24px!important;min-width:0}
+html body.ml-module.bm-enabled #baziReading{font-family:var(--ui-font),sans-serif!important;max-width:100%;overflow-wrap:anywhere}
+html body.ml-module.bm-enabled #baziReading h2{font-family:var(--ui-font),sans-serif!important;font-size:15px!important;font-weight:600!important;line-height:1.5!important;letter-spacing:0!important;margin:22px 0 9px!important;color:#34304e!important}
+html body.ml-module.bm-enabled #baziReading h2:first-child{margin-top:0!important}
+html body.ml-module.bm-enabled #baziReading p{font-size:14px!important;line-height:1.85!important;letter-spacing:0!important;margin:10px 0!important;white-space:pre-line;color:#514d68!important}
+html body.ml-module.bm-enabled #baziReading .judgment-lead{font-size:16px!important;line-height:1.65!important;font-weight:500!important;padding:12px 14px!important;margin:8px 0 14px!important;border-radius:12px;background:#eeebf8;color:#6156ae!important}
+html body.ml-module.bm-enabled #baziReading .reading-evidence{font-size:12px!important;line-height:1.75!important;padding:10px 12px!important;margin:12px 0!important;border-left:3px solid #a79acb!important;border-radius:0 9px 9px 0;background:#eff0f7;color:#6a6680!important}
+html body.ml-module.bm-enabled #baziReading .judgment-luck{display:grid;gap:6px}
+html body.ml-module.bm-enabled #baziReading .judgment-luck p{font-size:12px!important;line-height:1.7!important;padding:10px 12px!important;margin:0!important;border:0!important;border-radius:9px;background:#eff0f7;font-variant-numeric:tabular-nums}
+html body.ml-module.bm-enabled #baziReading details{padding:0!important;margin-top:18px!important;border-top:1px solid var(--line)}
+html body.ml-module.bm-enabled #baziReading summary{font-size:13px!important;line-height:1.6!important;letter-spacing:0!important;padding:12px 0!important;min-height:44px}
+
+/* One concise report with five phone-sized reading cards. */
+html body.ml-module.bm-enabled #baziReading.bazi-summary-report{display:grid;gap:12px}
+html body.ml-module.bm-enabled #baziReading .bazi-summary-card{padding:14px 15px;background:#eff0f8;border-radius:12px;border:0;min-width:0}
+html body.ml-module.bm-enabled #baziReading .bazi-summary-card:first-child{background:#eeebf8}
+html body.ml-module.bm-enabled #baziReading .bazi-summary-card h2{margin:0 0 7px!important;font-size:15px!important}
+html body.ml-module.bm-enabled #baziReading .bazi-summary-card p{margin:0!important;font-size:14px!important;line-height:1.8!important}
+
+
+html body.ml-module.bm-enabled #baziReading .bazi-insight-tabs{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0}
+html body.ml-module.bm-enabled #baziReading :is(.bazi-insight-tabs,.bazi-cycle-strip) button{font:inherit!important;font-size:12px!important;min-height:38px!important;padding:6px 9px!important;margin:0!important;border:1px solid #dfd9ee!important;border-radius:9px!important;background:transparent!important;color:#6156ae!important;letter-spacing:0!important}
+html body.ml-module.bm-enabled #baziReading button[aria-pressed=true]{background:#e4def4!important;border-color:#a99aca!important}
+.bazi-cycle-strip{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:thin}
+.bazi-cycle-strip button{flex:0 0 87px;display:grid;gap:2px;text-align:center}
+html body.ml-module.bm-enabled #baziReading .bazi-cycle-strip small{font-size:10px!important;white-space:nowrap}
+html body.ml-module.bm-enabled #baziReading .bazi-insight-note{font-size:11px!important;color:#77718a!important;margin-top:8px!important}
+.bazi-event-list{display:grid;gap:7px}.bazi-event-list p{display:grid;grid-template-columns:38px minmax(0,1fr);gap:8px;padding:9px 0;border-top:1px solid #dfe3f1}
+html body.ml-module.bm-enabled #baziReading .bazi-event-list p{font-size:12px!important}
+
+
+html body.ml-module.bm-enabled #chart .bazi-character-button{display:inline-flex!important;align-items:center;justify-content:center;width:100%!important;min-width:0!important;min-height:38px!important;padding:2px 0!important;margin:0!important;border:1px solid transparent!important;border-radius:7px!important;background:transparent!important;line-height:1.2!important}
+html body.ml-module.bm-enabled #chart .bazi-character-button[aria-pressed=true]{background:#e5dff5!important;border-color:#b1a3cf!important}
+#baziPositionReading{margin:10px 0 14px;padding:12px 14px;border-radius:11px;background:#eeebf8;color:#514d68}
+html body.ml-module.bm-enabled #baziPositionReading h3{font-size:14px!important;line-height:1.5!important;letter-spacing:0!important;margin:0 0 6px!important;color:#6156ae!important}
+html body.ml-module.bm-enabled #baziPositionReading p{font-size:13px!important;line-height:1.8!important;margin:0!important;overflow-wrap:anywhere}
+

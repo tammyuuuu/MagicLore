@@ -8,30 +8,65 @@ window.judgeBazi=function(r){
  const clash=['子午','丑未','寅申','卯酉','辰戌','巳亥'].filter(pair=>ks.some(k=>p[k].branch===pair[0])&&ks.some(k=>p[k].branch===pair[1]));
  const uncertain=extreme||clash.some(pair=>pair.includes(p.month.branch));
  const leaningWeak=ratio<.5,balanced=Math.abs(ratio-.5)<.001;
- const verdict=weak?'日主偏弱（初判）':strong?'日主偏强（初判）':balanced?'日主接近平衡（初判）':leaningWeak?'接近平衡，略偏弱（初判）':'接近平衡，略偏强（初判）';
+ const verdict=weak?'日主偏弱':strong?'日主偏强':balanced?'日主接近平衡':leaningWeak?'接近平衡，略偏弱':'接近平衡，略偏强';
  const favorable=balanced?[]:leaningWeak?[print,same]:[out,money,officer],avoid=balanced?[]:leaningWeak?[out,money,officer]:[print,same];
  return {verdict,favorable,avoid,uncertain,balanced,leaningWeak,roots,ratio,clash,evidence,same,print,out,money,officer};
 };
+/* Conservative rule signals: no event probabilities or numeric fortune scores. */
+window.buildBaziInsight=function(r,now=new Date()){
+ const j=window.judgeBazi(r),p=r.calculatedResult,keys=['year','month','day','hour'];
+ const stemElement=s=>'木木火火土土金金水水'['甲乙丙丁戊己庚辛壬癸'.indexOf(s)];
+ const branches=keys.map(k=>p[k].branch),hidden=keys.flatMap(k=>p[k].hiddenStems),visible=keys.filter(k=>k!=='day').map(k=>p[k].stemAttributes.element);
+ const supports=e=>e===j.same||e===j.print;
+ // Strict sufficient subsets only: no assumed combination transformations.
+ const stemCombines=['甲己','乙庚','丙辛','丁壬','戊癸'].some(pair=>keys.some(k=>p[k].stem===pair[0])&&keys.some(k=>p[k].stem===pair[1]));
+ const branchComplications=['子午','丑未','寅申','卯酉','辰戌','巳亥','子丑','寅亥','卯戌','辰酉','巳申','午未','子未','丑午','寅巳','卯辰','申亥','酉戌','子卯','丑戌','未戌'].some(pair=>branches.includes(pair[0])&&branches.includes(pair[1]))||['辰','午','酉','亥'].some(b=>branches.filter(x=>x===b).length>1);
+ const clean=!stemCombines&&!branchComplications;
+ const allElements=[...visible,...hidden.map(h=>h.element)];
+ const followStrong=clean&&allElements.every(supports)&&p.month.hiddenStems[0].element===j.same&&j.roots.length>0;
+ const followWeak=clean&&!allElements.some(supports)&&new Set(allElements).size===1&&[j.out,j.money,j.officer].includes(allElements[0]);
+ const follow=followStrong?'从强':followWeak?'从弱':null;
+ const level=follow||(j.ratio<.25?'身弱':j.ratio<.42?'偏弱':j.ratio<=.58?'平衡':j.ratio<=.75?'偏强':'身强');
+ const unresolved=!follow&&(j.ratio<.15||j.ratio>.85||j.uncertain);
+ const favorable=followStrong?[j.same,j.print]:followWeak?[allElements[0]]:j.balanced||unresolved?[]:j.favorable;
+ const avoid=followStrong?[j.officer,j.money]:followWeak?[j.same,j.print]:j.balanced||unresolved?[]:j.avoid;
+ const clash=(a,b)=>['子午','丑未','寅申','卯酉','辰戌','巳亥'].some(pair=>pair.includes(a)&&pair.includes(b)&&a!==b);
+ const join=(a,b)=>['子丑','寅亥','卯戌','辰酉','巳申','午未'].some(pair=>pair.includes(a)&&pair.includes(b)&&a!==b);
+ const horse=b=>'寅午戌'.includes(b)?'申':'申子辰'.includes(b)?'寅':'巳酉丑'.includes(b)?'亥':'巳';
+ const dateYear=Number(new Intl.DateTimeFormat('en',{timeZone:'Asia/Shanghai',year:'numeric'}).format(now));
+ const start=new Date(r.luckCycles?.startDate),cycles=(r.luckCycles?.cycles||[]).map((c,i)=>{
+  const a=new Date(start),b=new Date(start);a.setUTCFullYear(start.getUTCFullYear()+i*10);b.setUTCFullYear(start.getUTCFullYear()+(i+1)*10);
+  const e=stemElement(c.pillar[0]),stem=favorable.includes(e)?'运干与命局所喜五行相合。':avoid.includes(e)?'运干带来命局需要节制的五行。':'';
+  const gs=[c.stemTenGod,c.branchTenGod];
+  const career=gs.some(g=>['正官','七杀'].includes(g))?'职责、考核与压力主题突出。':gs.some(g=>['食神','伤官'].includes(g))?'表达、产出与改进主题突出。':gs.some(g=>['正印','偏印'].includes(g))?'学习、资质与专业积累主题突出。':'';
+  const wealth=gs.some(g=>['正财','偏财'].includes(g))?'财星进入大运，经营、收入安排和支出议题更值得关注。':gs.some(g=>['比肩','劫财'].includes(g))?'合作与资源分配值得关注，先明确预算和分账。':'';
+  const relationship=clash(c.pillar[1],p.day.branch)?'运支与日支相冲，关系节奏或共同安排可能需要调整。':join(c.pillar[1],p.day.branch)?'运支与日支相合，关系连接与共同安排值得关注。':'';
+  return {...c,current:now>=a&&now<b,scores:{overall:null,career:null,wealth:null,relationship:null},themes:{overall:stem+(clash(c.pillar[1],p.month.branch)?'运支冲月支，环境与工作安排的变化值得关注。':''),career,wealth,relationship}};
+ });
+ const events={love:[],career:[],wealth:[],move:[]},seen=new Set();
+ for(const c of cycles)for(const y of c.years||[]){if(y.year<dateYear||y.year>dateYear+9||seen.has(y.year))continue;seen.add(y.year);const branch=y.annual?.pillar?.[1],g=y.annual?.stemTenGod;if(!branch)continue;
+  if(clash(branch,p.day.branch)||join(branch,p.day.branch))events.love.push({year:y.year,text:join(branch,p.day.branch)?'流年与日支相合，适合关注关系连接与共同计划。':'流年与日支相冲，关系安排与沟通需要关注。'});
+  if(clash(branch,p.month.branch))events.career.push({year:y.year,text:'流年冲月支，工作环境或职责安排有变化信号。'});
+  if(['正财','偏财'].includes(g))events.wealth.push({year:y.year,text:'流年天干为财星，经营机会、收支和资源安排值得关注。'});
+  if(branch===horse(p.day.branch)||branch===horse(p.year.branch))events.move.push({year:y.year,text:'流年触发年支或日支对应的驿马，出行与异地事务值得关注。'});
+ }
+ return {dayMaster:p.day.stem,element:j.same,level,follow,unresolved,favorable,avoid,patterns:[],cycles,events,dateYear};
+};
 window.renderBaziJudgment=function(r,host){
- const j=window.judgeBazi(r),p=r.calculatedResult;host.replaceChildren();
- function heading(t){const h=document.createElement('h2');h.textContent=t;host.append(h)}function para(t,cls){const a=document.createElement('p');a.textContent=t;if(cls)a.className=cls;host.append(a)}
- heading('命 盘 重 点');para(`${p.day.stem}${j.same}日主 · ${j.verdict}`,'judgment-lead');
- heading('喜 忌 初 判');
- if(j.favorable.length){
-  para(`喜：${j.favorable.join('、')}　｜　忌：${j.avoid.join('、')}`,'judgment-lead');
-  para(`取法：按普通格局扶抑。${j.leaningWeak?'生扶一侧较弱，取印比生扶日主，财官食伤先列忌。':'生扶一侧较强，取食伤泄、财耗、官杀制，印比先列忌。'}本项是当前规则的明确初判，尚不能确定最终用神及喜用顺序。`);
-  if(j.uncertain)para('可信度低：'+(j.ratio<.15||j.ratio>.85?'生扶比例极端，需先排查从格；若为从格，以上喜忌可能反转。':'月令受冲，需核对根气是否仍有效，以上先按未改变格局计算。'),'reading-evidence');
-  else if(!j.favorable.length||j.ratio>=.42&&j.ratio<=.58)para('可信度低：接近平衡，微小权重变化就可能改变喜忌方向。','reading-evidence');
- }else para('扶抑喜忌：暂不能唯一确定。当前生扶与泄耗制恰好平衡；若核定偏弱则喜'+j.print+'、'+j.same+'，若核定偏强则喜'+j.out+'、'+j.money+'、'+j.officer+'。需结合调候与合化裁定。');
- const winter='亥子丑'.includes(p.month.branch),summer='巳午未'.includes(p.month.branch);
- para(`调候重点：${winter?'冬令先核对火的温暖作用':summer?'夏令先核对水的润泽作用':'春秋需按日干与节气细分'}。${winter&&j.avoid.includes('火')||summer&&j.avoid.includes('水')?'与上述扶抑初判存在分歧，不能直接合并成最终喜忌。':'此项不直接覆盖上述扶抑初判。'}`);
- heading('大 运 重 点');
- const list=document.createElement('div');list.className='judgment-luck';(r.luckCycles?.cycles||[]).forEach(c=>{const e=['木','木','火','火','土','土','金','金','水','水']['甲乙丙丁戊己庚辛壬癸'.indexOf(c.pillar[0])];const line=document.createElement('p');line.textContent=`${c.startYear}—${c.endYear}　${c.pillar}　${j.favorable.includes(e)?'运干为喜':j.avoid.includes(e)?'运干为忌，需看制化':'运干喜忌未定'}（${c.stemTenGod}）`;list.append(line)});host.append(list);
- heading('生活主题');para(`事业：观察${j.officer}官杀的职责与${j.out}食伤的输出如何配合。财富：${j.money}为财星范围，${j.favorable.includes(j.money)?'在本次扶抑初判中列为喜，仍需看是否有效':'需先核对承财条件，不能以财星多少直接断收入'}。婚姻：日支${p.day.branch}${j.clash.some(x=>x.includes(p.day.branch))?'在原局见冲，值得进一步检查相处与变化主题':'作为配偶宫继续核对合冲关系'}，不据此直接断离合。`);
- const details=document.createElement('details'),s=document.createElement('summary');s.textContent='查看判断依据与适用范围';const text=document.createElement('p');text.textContent=`月支${p.month.branch}；同五行根气：${j.roots.join('、')||'未见'}；透干：${j.evidence.join('；')}。原局六冲：${j.clash.join('、')||'未见'}。
+ const model=window.buildBaziInsight(r);host.replaceChildren();host.classList.add('bazi-summary-report');
+ const el=(tag,text)=>{const node=document.createElement(tag);if(text)node.textContent=text;return node;};
+ function card(title){const section=el('section');section.className='bazi-summary-card';section.append(el('h2',title));host.append(section);return section;}
+ const core=card('命局核心');core.append(el('p',`${model.dayMaster}${model.element}日主 · ${model.level}`));
 
-自动初判采用本项目实验性扶抑权重：月支藏干总权重3，其余支1；藏干按本气/中气/余气1/.3/.2归一化；非日干各1。生扶比例低于42%判偏弱，高于58%判偏强，42%—58%为接近平衡，按50%分生扶强弱方向；恰好50%不强行分喜忌。15%以下或85%以上及月令逢六冲标记低可信度，仍显示普通格局的扶抑基准。当前比例 ${(j.ratio*100).toFixed(0)}%。这些数值是软件启发式，不是旺衰派公认标准。
-
-暂未处理合化、从格、节气深浅与刑害破对根气的影响，因此只作低置信度初判；大运只比较运干，尚未综合运支与流年，不代表十年实际吉凶。排盘结果与喜忌均需核验。`;details.append(s,text);host.append(details);
- para('传统命理解读 · 实验性初判，非现实结果预测。','reading-evidence');
+ for(const pattern of model.patterns)core.append(el('p',pattern));
+ const elements=card('五行喜忌');elements.hidden=!model.favorable.length;elements.append(el('p',model.favorable.length?`喜：${model.favorable.join('、')}　忌：${model.avoid.join('、')}`:''));
+ elements.append(el('p',model.follow?'以顺应命局主导气势为主。':model.unresolved?'':'以平衡命局的生扶与消耗为主。'));
+ const trend=card('大运趋势'),tabs=el('div'),strip=el('div'),detail=el('p'),status=el('p','');tabs.className='bazi-insight-tabs';strip.className='bazi-cycle-strip';status.className='bazi-insight-note';trend.append(tabs,strip,detail);
+ let theme='overall',selected=model.cycles.findIndex(c=>c.current);if(selected<0)selected=0;
+ function update(){for(const b of tabs.children)b.setAttribute('aria-pressed',String(b.dataset.theme===theme));for(const [i,b]of [...strip.children].entries())b.setAttribute('aria-pressed',String(i===selected));const c=model.cycles[selected];detail.textContent=c?`${c.startYear}—${c.endYear} · ${c.pillar}：${c.themes[theme]}`:'暂无可用的大运数据。';}
+ for(const [key,label]of [['overall','综合'],['career','事业'],['wealth','财运'],['relationship','感情']]){const b=el('button',label);b.type='button';b.dataset.theme=key;b.onclick=()=>{theme=key;update();};tabs.append(b);}
+ model.cycles.forEach((c,i)=>{const b=el('button');b.type='button';b.append(el('strong',c.pillar),el('small',`${c.startYear}—${c.endYear}`));if(c.current)b.append(el('small','当前'));b.onclick=()=>{selected=i;update();};strip.append(b);});update();
+ const special=card('专题预测'),choices=el('div'),list=el('div');choices.className='bazi-insight-tabs';list.className='bazi-event-list';special.append(el('p',`未来十年（${model.dateYear}—${model.dateYear+9}）`),choices,list);
+ function choose(key){for(const b of choices.children)b.setAttribute('aria-pressed',String(b.dataset.topic===key));list.replaceChildren();const rows=model.events[key];if(!rows.length)list.append(el('p','暂无对应年份。'));for(const row of rows){const item=el('p');item.append(el('strong',String(row.year)),el('span',row.text));list.append(item);}}
+ for(const [key,label]of [['love','婚恋时间'],['career','事业变动'],['wealth','财运机会'],['move','迁移变动']]){const b=el('button',label);b.type='button';b.dataset.topic=key;b.onclick=()=>choose(key);choices.append(b);}choose('love');
 };
