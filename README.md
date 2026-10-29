@@ -25,3 +25,5 @@ Windows 推荐双击 **Start-MagicLore.cmd**：自动启动/复用本机预览�
 双击兼容与子路径验收见 [FILE_PREVIEW.md](FILE_PREVIEW.md)。`pnpm run build:pwa` 会先从相同源码重建双击兼容包，再生成资源清单；不要直接编辑生成的 `.file.js`。
 
 深入移植遗留审计、保留边界和本轮验收见 [DEEP_CLEANUP_AUDIT.md](DEEP_CLEANUP_AUDIT.md)。`build:vedic` 是开发核对页入口，当前正式印占 UI 使用 `build:vedic:classic`。
+
+八字统一判断引擎包含格局、旺衰、从格、季节调候、干支作用与四主题岁运趋势。规则参数、经典结构回归和未评分边界见 [BAZI_ACCURACY.md](BAZI_ACCURACY.md#统一判断引擎-v22026-10-28)；趋势分是可复算的软件规则指标，尚未校准为事件概率。

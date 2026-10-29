@@ -1,0 +1,11 @@
+import { analyzeMonthPatterns } from '../rules/patterns.js';
+import { analyzeBaziJudgment } from '../rules/judgmentEngine.js';
+import { analyzeBaziPeriod } from '../rules/periodScoring.js';
+import { buildUnifiedBaziInsight, legacyJudgmentView } from '../rules/integratedInsight.js';
+import { renderTrendSvg } from './trendChart.js';
+window.analyzeBaziPatterns = analyzeMonthPatterns;
+window.analyzeBaziJudgment=analyzeBaziJudgment;
+window.analyzeBaziPeriod=analyzeBaziPeriod;
+window.buildUnifiedBaziInsight=buildUnifiedBaziInsight;
+window.legacyBaziJudgment=legacyJudgmentView;
+window.renderBaziTrendSvg=renderTrendSvg;

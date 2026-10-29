@@ -1,6 +1,6 @@
 import {homeIcon,navIcon} from './home-icons.js';
 import {migrate} from './profile-store.js';
-import {exportProfiles as snapshot,initializePeople,ensureDefaultRelationship,retireOldRelationshipCharts,ensureDefaultPerson,ensureDefaultFemalePerson,importProfiles,selectPerson} from './person-store.js';
+import {exportProfiles as snapshot,initializePeople,retireOldRelationshipCharts,ensureDefaultPerson,importProfiles,selectPerson} from './person-store.js';
 import {registerPWA} from './pwa.js';
 const main=document.getElementById('appMain'),status=document.getElementById('appStatus');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -15,4 +15,4 @@ function settings(){main.innerHTML=`<section class="me-page"><div class="me-bran
 
 function route(){const requested=location.hash.slice(1)||'home',tab=requested==='charts'?'home':requested.startsWith('settings-')?'settings':requested;document.body.classList.toggle('ml-home',tab==='home');document.body.classList.toggle('ml-me',requested==='settings');document.body.classList.toggle('ml-cool-page',['profiles','notes','knowledge'].includes(tab)||requested.startsWith('settings-'));document.querySelectorAll('[data-tab]').forEach(a=>{if(a.dataset.tab===tab)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});if(requested==='settings-legacy'||requested==='settings-trash')profiles(requested.slice(9),true);else ({home,knowledge,notes,profiles:()=>profiles(),settings}[tab]||home)();window.scrollTo(0,0);if(requested==='charts')document.getElementById('collectionTools')?.scrollIntoView({block:'start'});}
 document.querySelectorAll('[data-tab]').forEach(link=>{link.querySelector('span').innerHTML=navIcon(link.dataset.tab);});
-try{migrate();initializePeople();retireOldRelationshipCharts();ensureDefaultPerson();ensureDefaultFemalePerson();ensureDefaultRelationship();}catch(e){notify(e.message);}document.addEventListener('click',event=>{const link=event.target.closest('a[href^="#"]');if(link&&link.hash===location.hash&&!event.defaultPrevented){event.preventDefault();route();}});window.addEventListener('hashchange',route);route();document.body.dataset.mlReady='true';document.querySelector('.ml-startup')?.remove();registerPWA();
+try{migrate();initializePeople();retireOldRelationshipCharts();ensureDefaultPerson();}catch(e){notify(e.message);}document.addEventListener('click',event=>{const link=event.target.closest('a[href^="#"]');if(link&&link.hash===location.hash&&!event.defaultPrevented){event.preventDefault();route();}});window.addEventListener('hashchange',route);route();document.body.dataset.mlReady='true';document.querySelector('.ml-startup')?.remove();registerPWA();

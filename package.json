@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "test:bazi": "node --test tests/bazi/*.test.js",
-    "build:bazi": "esbuild src/bazi/ui/baziApp.js --bundle --platform=browser --format=iife --minify --legal-comments=eof --outfile=bazi_app.js",
+    "build:bazi-patterns": "node tools/build_bazi.mjs",
+    "build:bazi": "node tools/build_bazi.mjs",
     "test:vedic": "node --test tests/vedic/*.test.js",
     "build:vedic": "esbuild src/vedic/ui/vedicVerifyApp.js --bundle --platform=browser --format=iife --outfile=vedic_verify_app.js",
     "build:vedic:classic": "node tools/build_vedic_classic.mjs",

@@ -122,7 +122,17 @@ html body.ml-module.nm-enabled #report :is(#energyDetail,#cycleDetail,#year .yea
 
 html body.ml-module.nm-enabled #report #year .year-layout{padding:12px!important;border:0!important;border-radius:10px!important;background:#edf0f8!important;margin-top:10px;min-width:0}
 
-html body.ml-module.nm-enabled #energy .nm-unified-grid{justify-items:center;gap:9px}
-html body.ml-module.nm-enabled #energy .nm-unified-node{width:100%;max-width:124px;aspect-ratio:1;height:auto;min-height:0!important;border-radius:50%!important;justify-content:center;padding:8px 3px!important;gap:5px}
+html body.ml-module.nm-enabled #energy .nm-unified-grid{justify-items:center;align-items:center;gap:14px;width:min(100%,310px)!important;max-width:310px!important;aspect-ratio:1!important;grid-template-rows:repeat(3,minmax(0,1fr));margin:12px auto 18px!important}
+html body.ml-module.nm-enabled #energy .nm-unified-node{box-sizing:border-box;width:100%!important;max-width:74px!important;aspect-ratio:1;height:auto!important;min-height:0!important;border-radius:50%!important;justify-content:center;padding:6px 2px!important;gap:3px}
+html body.ml-module.nm-enabled #energy .nm-node-value{font-size:21px;gap:4px}
 #energy .nm-unified-node .nm-node-roles{gap:2px;max-width:100%;min-height:16px}
 #energy .nm-unified-node .nm-node-roles>span{font-size:10px;padding:1px 3px}
+
+/* Birthday frequency is shown as concentric rings around a single digit. */
+html body.ml-module.nm-enabled #energy .nm-unified-node{position:relative;border:0!important;background:transparent!important;isolation:isolate}
+.nm-node-rings{position:absolute;inset:0;pointer-events:none}
+.nm-node-rings>span{position:absolute;inset:calc(var(--ring)*4px);border:1px solid #c5badd;border-radius:50%}
+.nm-unified-node:not(.nm-present) .nm-node-rings>span{border-color:#e4e0ef;border-style:dashed}
+html body.ml-module.nm-enabled #energy .nm-unified-node[aria-pressed=true]{background:#e8e3f6!important}
+html body.ml-module.nm-enabled #energy .nm-unified-node[aria-pressed=true] .nm-node-rings>span{border-color:#a497c9}
+html body.ml-module.nm-enabled #energy .nm-node-value{position:relative;z-index:1}

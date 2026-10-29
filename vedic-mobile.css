@@ -83,3 +83,11 @@ html body.ml-module.vm-enabled #vedicThemeReading .vm-reading-heading .theme-sta
 .vm-reading-fold[open]>summary .vm-reading-chevron{transform:rotate(180deg)}
 .vm-reading-body{padding:0 14px 15px;border:0;background:transparent;border-radius:0}
 .vm-reading-fold:not([open])>.vm-reading-body{display:none}
+
+/* Keep crowded triangle houses inside their diagonal boundaries. */
+html body.ml-module.vm-enabled .north-chart{container-type:inline-size}
+html body.ml-module.vm-enabled .north-chart .chart-house{width:18%;min-height:0;padding:0}
+html body.ml-module.vm-enabled .north-chart .chart-grahas{gap:0 3px;width:100%;display:flex;flex-wrap:wrap;justify-content:center}
+html body.ml-module.vm-enabled .north-chart .chart-graha{min-width:0!important;width:auto!important;min-height:0!important;height:auto!important;padding:0!important;font-size:clamp(8px,3cqw,13px)!important;line-height:1.25!important;letter-spacing:0!important;white-space:nowrap}
+html body.ml-module.vm-enabled .north-chart .chart-asc{font-size:clamp(9px,3cqw,12px);line-height:1.25}
+html body.ml-module.vm-enabled .north-chart .chart-sign{position:static!important;top:auto;right:auto;left:auto;transform:none;display:block;flex:none;margin:0 0 3px;line-height:1.2;font-size:clamp(8px,2.5cqw,11px)}

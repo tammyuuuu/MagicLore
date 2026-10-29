@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {retireOldRelationshipCharts,ensureDefaultPerson,ensureDefaultFemalePerson,PEOPLE_KEY,readPeople,savePerson,listPeople,getPerson,getBirthFacts,setPersonDeleted,selectPerson,getSelectedPerson,legacyRecords,personFromLegacy,hideLegacy,exportProfiles,importProfiles,recoverProfiles,initializePeople} from '../../person-store.js';
+import {retireOldRelationshipCharts,ensureDefaultPerson,retireDefaultFemalePerson,PEOPLE_KEY,readPeople,savePerson,listPeople,getPerson,getBirthFacts,setPersonDeleted,selectPerson,getSelectedPerson,legacyRecords,personFromLegacy,hideLegacy,exportProfiles,importProfiles,recoverProfiles,initializePeople} from '../../person-store.js';
 import {STORES} from '../../profile-store.js';
 import {resolveWallTime,offsetSeconds} from '../../profile-time.js';
 import {parseCivilTime} from '../../src/bazi/core/time.js';
@@ -46,14 +46,17 @@ test('默认现居北京，补全旧默认档案但不覆盖手动地点',()=>{
  const s=memory(),p=ensureDefaultPerson(s);assert.equal(p.residence.place.name,'北京');assert.equal(p.residence.zone.iana,'Asia/Shanghai');savePerson({...p,residence:null},p.id,s);assert.equal(ensureDefaultPerson(s).residence.place.name,'北京');const updated=getPerson(p.id,s);updated.residence.place.name='上海';savePerson(updated,p.id,s);assert.equal(ensureDefaultPerson(s),null);assert.equal(getPerson(p.id,s).residence.place.name,'上海');
 });
 
-test('女默认档案独立保存、不修改男档案、不重复创建或恢复已删除档案',()=>{
- const s=memory(),male=ensureDefaultPerson(s),female=ensureDefaultFemalePerson(s);assert.equal(female.sex,'female');assert.deepEqual(female.birth,male.birth);assert.deepEqual(female.residence,male.residence);assert.equal(getPerson(male.id,s).sex,'male');assert.equal(getSelectedPerson(s).id,male.id);assert.equal(ensureDefaultFemalePerson(s),null);setPersonDeleted(female.id,true,s);assert.equal(ensureDefaultFemalePerson(s),null);
+test('移除预置女档案与默认合盘，不影响其他人物，且允许恢复',()=>{
+ const s=memory(),male=ensureDefaultPerson(s),female={...male,id:'magiclore-default-female-20000101',name:'默认档案（女）',sex:'female'};
+ const data=readPeople(s);data.records.push(female);data.selectedId=female.id;s.setItem(PEOPLE_KEY,JSON.stringify(data));s.removeItem('magiclore_single_default_v1');
+ s.setItem(STORES.relationship,JSON.stringify([{id:male.id+'_'+female.id,isoA:'2000-01-01',isoB:'2000-01-01',personAId:male.id,personBId:female.id},{id:'custom-pair',isoA:'2000-01-01',isoB:'2000-01-01',personAId:male.id,personBId:male.id}]));
+ retireDefaultFemalePerson(s);assert.equal(listPeople({},s).length,1);assert.ok(getPerson(female.id,s).deletedAt);assert.equal(readPeople(s).hiddenLegacy.length,1);assert.equal(readPeople(s).selectedId,null);setPersonDeleted(female.id,false,s);retireDefaultFemalePerson(s);assert.equal(listPeople({},s).length,2);
 });
 
 test('收起全部日期旧合盘但保留人物关联合盘，恢复后不重复收起',()=>{
  const s=memory(),rows=[{isoA:'1995-02-07',isoB:'2000-02-09'},{isoA:'1999-07-07',isoB:'2000-02-09'},{isoA:'2000-01-01',isoB:'2000-01-01',personAId:'person-a',personBId:'person-b'}];s.setItem(STORES.relationship,JSON.stringify(rows));const before=s.getItem(STORES.relationship);retireOldRelationshipCharts(s);assert.equal(readPeople(s).hiddenLegacy.length,2);assert.equal(s.getItem(STORES.relationship),before);const key=readPeople(s).hiddenLegacy[0];hideLegacy(key,false,s);retireOldRelationshipCharts(s);assert.equal(readPeople(s).hiddenLegacy.length,1);
 });
 
-test('默认男档案名称补全且不覆盖用户改名',()=>{
- const s=memory(),p=ensureDefaultPerson(s);assert.equal(p.name,'默认档案（男）');savePerson({...p,name:'默认档案'},p.id,s);assert.equal(ensureDefaultPerson(s).name,'默认档案（男）');const updated=getPerson(p.id,s);savePerson({...updated,name:'我的人物'},p.id,s);ensureDefaultPerson(s);assert.equal(getPerson(p.id,s).name,'我的人物');
+test('默认档案移除男后缀且不覆盖用户改名',()=>{
+ const s=memory(),p=ensureDefaultPerson(s);assert.equal(p.name,'默认档案');savePerson({...p,name:'默认档案（男）'},p.id,s);assert.equal(ensureDefaultPerson(s).name,'默认档案');const updated=getPerson(p.id,s);savePerson({...updated,name:'我的人物'},p.id,s);ensureDefaultPerson(s);assert.equal(getPerson(p.id,s).name,'我的人物');
 });

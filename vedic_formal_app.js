@@ -638,7 +638,7 @@ Object.assign(exports,{calculateVedicTransit,vedicTransitWindow,vedicTransitNarr
 __define("src/vedic/renderers/northIndianChart.js",function(exports,__require){
 const {GRAHA_METADATA}=__require("src/vedic/metadata/grahas.js");
 
-const HOUSE_POSITIONS={1:[50,24],2:[27,15],3:[13,33],4:[25,50],5:[13,67],6:[27,85],7:[50,76],8:[73,85],9:[87,67],10:[75,50],11:[87,33],12:[73,15]};
+const HOUSE_POSITIONS={1:[50,24],2:[25,10],3:[10,25],4:[25,50],5:[10,75],6:[25,90],7:[50,76],8:[75,90],9:[90,75],10:[75,50],11:[90,25],12:[75,10]};
 
 function renderNorthIndianChart(container,chart,{onSelectHouse=()=>{},onSelectGraha=()=>{}}={}){
   container.replaceChildren();

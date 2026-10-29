@@ -1,9 +1,9 @@
 import {CHART_SYSTEMS,chartURL,chartProfileInput} from './chart-profile.js';
-import {listPeople,ensureDefaultPerson,ensureDefaultFemalePerson,getPerson,getSelectedPerson,selectPerson} from './person-store.js';
+import {listPeople,ensureDefaultPerson,getPerson,getSelectedPerson,selectPerson} from './person-store.js';
 import {homeIcon} from './home-icons.js';
 export async function installChartContext({header,nav}){
  const system=CHART_SYSTEMS.find(r=>location.pathname.endsWith(r[1]))?.[0];if(!system)return;
- ensureDefaultPerson();ensureDefaultFemalePerson();
+ ensureDefaultPerson();
  document.body.classList.add('mc-enabled');
  const transitIntro=document.querySelector('.library-transit-form')?.closest('section')?.querySelector('h1+p');if(transitIntro)transitIntro.textContent='使用当前人物档案作为本命，选择行运时刻。';
  const relocationIntro=document.querySelector('.library-relocation-page h1+p');if(relocationIntro)relocationIntro.textContent='使用当前人物档案，选择目的地对照四轴与宫位变化。';

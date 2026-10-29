@@ -68,3 +68,24 @@ html body.ml-module.bm-enabled #chart .bazi-character-button[aria-pressed=true]{
 html body.ml-module.bm-enabled #baziPositionReading h3{font-size:14px!important;line-height:1.5!important;letter-spacing:0!important;margin:0 0 6px!important;color:#6156ae!important}
 html body.ml-module.bm-enabled #baziPositionReading p{font-size:13px!important;line-height:1.8!important;margin:0!important;overflow-wrap:anywhere}
 
+
+/* Independent, gap-aware rule-trend chart; never connect unknown scores. */
+.bazi-trend-graph{margin:8px 0 5px;min-width:0;color:#7360ad}
+.bazi-trend-svg{display:block;width:100%;height:auto;overflow:visible}
+.bazi-trend-svg .bt-grid{stroke:#deddeb;stroke-width:1;stroke-dasharray:3 4}
+.bazi-trend-svg .bt-axis{font:10px system-ui,sans-serif;fill:#817992}
+.bazi-trend-svg .bt-line{fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.bazi-trend-svg .bt-point{fill:currentColor;stroke:#f7f8fd;stroke-width:1.5}
+.bazi-trend-svg .bt-missing{fill:transparent;stroke:#aca5ba;stroke-dasharray:2 2}
+.bazi-trend-svg [role=button]{cursor:pointer;outline:none}
+.bazi-trend-svg [role=button]:focus .bt-point,.bazi-trend-svg [aria-pressed=true] .bt-point{stroke:#40316c;stroke-width:2}
+html body.ml-module.bm-enabled #baziReading .bazi-year-choice label{display:flex;gap:10px;align-items:center;margin:10px 0 6px;color:#716586;font-size:12px;letter-spacing:0}
+html body.ml-module.bm-enabled #baziReading .bazi-year-choice select{width:auto!important;min-width:95px;min-height:36px;padding:5px 10px!important;font-size:13px!important;background:#f7f6fc!important;border:1px solid #dcd5eb!important;border-radius:8px;color:#6156ae;color-scheme:light}
+
+
+.bazi-trend-graph[data-theme=career]{color:#527c9c}.bazi-trend-graph[data-theme=wealth]{color:#5a876e}.bazi-trend-graph[data-theme=relationship]{color:#a16d8d}
+
+
+html body.ml-module.bm-enabled #baziReading .bazi-insight-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+html body.ml-module.bm-enabled #baziReading .bazi-insight-tabs button{width:100%!important;min-width:0!important;padding:6px 3px!important;white-space:nowrap!important}
+

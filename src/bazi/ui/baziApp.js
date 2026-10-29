@@ -1,4 +1,4 @@
-import { calculateBazi } from '../services/calculateBazi.js';
+import { calculateBaziWithPatterns as calculateBazi } from '../services/analyzeBazi.js';
 import { STEM_BY_NAME, BRANCH_BY_NAME } from '../data/fundamentals.js';
 import { getHiddenStems } from '../data/hiddenStems.js';
 import { getTenGod } from '../rules/tenGods.js';

@@ -51,3 +51,8 @@ html body.ml-module :is(.western-reading-grid,.vedic-theme-grid,.theme-grid,.evi
 html body.ml-module :is(.western-reading-grid,.vedic-theme-grid,.theme-grid,.evidence-grid,.d1-summary-grid,.reader-facts,.meaning-grid,.aux-grid,.atlas-detail-grid,.pair-grid,.difference-grid,.relationship-quick)>*{grid-column:1!important;min-width:0;max-width:100%;overflow-wrap:anywhere}
 
 html body.ml-module .mc-person-row .mc-new{display:grid!important;place-items:center!important;padding:0!important;line-height:1!important;flex-shrink:0}html body.ml-module .mc-new svg{display:block;width:24px;height:24px;margin:0}
+
+/* Match the document canvas to every mobile chart, including the safe area. */
+html:has(>body.ml-module){background:#f7f8fd!important;border:0!important;padding:0!important}
+html body.ml-module{border:0!important;box-shadow:none!important}
+

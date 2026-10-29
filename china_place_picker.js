@@ -1,3 +1,37 @@
+/* Degree/minute editors keep decimal calculation and saved values intact. */
+(()=>{
+ const descriptor=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');
+ document.querySelectorAll('input').forEach(source=>{
+  const key=source.id||source.name;
+  if(!/^(?:wLatitude|wLongitude|latitude|longitude)$/.test(key))return;
+  const limit=/lat/i.test(key)?90:180;
+  const editor=document.createElement('input');
+  editor.type='text';editor.required=source.required;editor.className=source.className;
+  editor.placeholder=/lat/i.test(key)?'31°30′':'121°30′';
+  editor.setAttribute('aria-label',/lat/i.test(key)?'纬度（度分）':'经度（度分）');
+  editor.title='填写度分，例如 31°30′；南纬、西经使用负号。分可带小数。';
+  function display(){
+   const raw=descriptor.get.call(source),value=Number(raw);
+   if(raw===''||!Number.isFinite(value)){editor.value='';return;}
+   const total=Math.round(Math.abs(value)*60*10000)/10000;
+   const degrees=Math.floor(total/60),minutes=Number((total-degrees*60).toFixed(4));
+   editor.value=(value<0?'-':'')+degrees+'°'+minutes+'′';
+   editor.setCustomValidity('');
+  }
+  Object.defineProperty(source,'value',{configurable:true,get(){return descriptor.get.call(this);},set(value){descriptor.set.call(this,value);display();}});
+  source.type='hidden';source.after(editor);display();
+  editor.addEventListener('input',()=>{
+   const match=editor.value.trim().match(/^([+-]?)(\d{1,3})\s*°\s*(\d+(?:\.\d+)?)\s*['′]?$/);
+   const value=match?(Number(match[2])+Number(match[3])/60)*(match[1]==='-'?-1:1):NaN;
+   const valid=Number.isFinite(value)&&Number(match[3])<60&&Math.abs(value)<=limit;
+   editor.setCustomValidity(valid?'':`请填写度分格式，例如 31°30′，分须小于60，度数不超过${limit}。`);
+   descriptor.set.call(source,valid?String(value):'');
+   source.dispatchEvent(new Event('input',{bubbles:true}));
+  });
+  editor.addEventListener('change',()=>{if(editor.checkValidity()){source.dispatchEvent(new Event('change',{bubbles:true}));display();}});
+  source.form?.addEventListener('reset',()=>setTimeout(display,0));
+ });
+})();
 /* Shared local birthplace catalogue; coordinate coverage is checked by tests/western/chinaPlaces.test.js. */
 (async()=>{
  const western=!!document.getElementById('wPlace');

@@ -48,30 +48,24 @@ function commit(values,storage){
 function saveEnvelope(data,storage){validatePeople(data);commit({[PEOPLE_KEY]:JSON.stringify(data)},storage);}
 // Add the default once without replacing existing profiles or reviving a deleted default.
 export function ensureDefaultPerson(storage=localStorage){
+  retireDefaultFemalePerson(storage);
   const data=readPeople(storage);
   const existing=data.records.find(p=>p.id==='magiclore-default-20000101'&&!p.deletedAt);
   const beijingResidence=()=>({place:{status:'known',name:'北京',locationId:null,latitude:39.9042,longitude:116.4074,source:'default'},zone:{iana:'Asia/Shanghai',fixedOffset:null,offsetChoice:null}});
-  if(existing&&(existing.sex===null||existing.residence==null||existing.name==='默认档案')){if(existing.name==='默认档案')existing.name='默认档案（男）';if(existing.sex===null)existing.sex='male';if(existing.residence==null)existing.residence=beijingResidence();existing.revision=(existing.revision||1)+1;existing.updatedAt=new Date().toISOString();saveEnvelope(data,storage);return copy(existing);}
+  if(existing&&(existing.sex===null||existing.residence==null||existing.name==='默认档案（男）')){if(existing.name==='默认档案（男）')existing.name='默认档案';if(existing.sex===null)existing.sex='male';if(existing.residence==null)existing.residence=beijingResidence();existing.revision=(existing.revision||1)+1;existing.updatedAt=new Date().toISOString();saveEnvelope(data,storage);return copy(existing);}
   if(data.records.some(p=>p.id==='magiclore-default-20000101'))return null;
   const now=new Date().toISOString();
-  const person={id:'magiclore-default-20000101',name:'默认档案（男）',sex:'male',notes:'',residence:beijingResidence(),revision:1,createdAt:now,updatedAt:now,deletedAt:null,birth:{date:{calendar:'gregorian',value:'2000-01-01',gregorian:'2000-01-01',isLeapMonth:null,conversion:null},time:'12:00',place:{status:'known',name:'北京',locationId:null,latitude:39.9042,longitude:116.4074,source:'default'},zone:{iana:'Asia/Shanghai',fixedOffset:null,offsetChoice:null},originalInput:{date:'2000-01-01',time:'12:00',place:'北京'}}};
+  const person={id:'magiclore-default-20000101',name:'默认档案',sex:'male',notes:'',residence:beijingResidence(),revision:1,createdAt:now,updatedAt:now,deletedAt:null,birth:{date:{calendar:'gregorian',value:'2000-01-01',gregorian:'2000-01-01',isLeapMonth:null,conversion:null},time:'12:00',place:{status:'known',name:'北京',locationId:null,latitude:39.9042,longitude:116.4074,source:'default'},zone:{iana:'Asia/Shanghai',fixedOffset:null,offsetChoice:null},originalInput:{date:'2000-01-01',time:'12:00',place:'北京'}}};
   data.records.push(person);if(!data.selectedId)data.selectedId=person.id;saveEnvelope(data,storage);return copy(person);
 }
-export function ensureDefaultFemalePerson(storage=localStorage){
-  const data=readPeople(storage),id='magiclore-default-female-20000101';
-  if(data.records.some(p=>p.id===id))return null;
-  const now=new Date().toISOString();
-  const place={status:'known',name:'北京',locationId:null,latitude:39.9042,longitude:116.4074,source:'default'},zone={iana:'Asia/Shanghai',fixedOffset:null,offsetChoice:null};
-  const person={id,name:'默认档案（女）',sex:'female',notes:'',residence:{place:copy(place),zone:copy(zone)},revision:1,createdAt:now,updatedAt:now,deletedAt:null,birth:{date:{calendar:'gregorian',value:'2000-01-01',gregorian:'2000-01-01',isLeapMonth:null,conversion:null},time:'12:00',place,zone,originalInput:{date:'2000-01-01',time:'12:00',place:'北京'}}};
-  data.records.push(person);if(!data.selectedId)data.selectedId=id;saveEnvelope(data,storage);return copy(person);
-}
-// Retire legacy date-only pairs; keep profile-linked pairs and recoverable raw backups.
-export function ensureDefaultRelationship(storage=localStorage){
- const id='magiclore-default-20000101_magiclore-default-female-20000101';
- const rows=readLegacy('relationship',storage);if(rows.some(r=>r.id===id))return;
- const people=readPeople(storage).records;if(!['magiclore-default-20000101','magiclore-default-female-20000101'].every(id=>people.some(p=>p.id===id&&!p.deletedAt)))return;
- const item={id,version:1,type:'relationship',title:'默认档案（男） × 默认档案（女）',personAId:'magiclore-default-20000101',personBId:'magiclore-default-female-20000101',isoA:'2000-01-01',isoB:'2000-01-01',generatedYear:new Date().getFullYear(),createdAt:new Date().toISOString()};
- commit({[STORES.relationship]:JSON.stringify([item,...rows])},storage);
+// Retire only the previously seeded female profile and its generated example pair.
+export function retireDefaultFemalePerson(storage=localStorage){
+ const marker='magiclore_single_default_v1';if(storage.getItem(marker))return;
+ const data=readPeople(storage),female=data.records.find(p=>p.id==='magiclore-default-female-20000101');let changed=false;
+ if(female&&!female.deletedAt){female.deletedAt=new Date().toISOString();female.updatedAt=female.deletedAt;female.revision=(female.revision||1)+1;if(data.selectedId===female.id)data.selectedId=null;changed=true;}
+ const oldPair='magiclore-default-20000101_magiclore-default-female-20000101';
+ for(const item of legacyRecords(storage).rows)if(item.type==='relationship'&&item.record.id===oldPair&&!data.hiddenLegacy.includes(item.key)){data.hiddenLegacy.push(item.key);changed=true;}
+ if(changed)saveEnvelope(data,storage);storage.setItem(marker,'1');
 }
 export function retireOldRelationshipCharts(storage=localStorage){
   const marker='magiclore_retired_relationship_charts_v2';if(storage.getItem(marker))return;

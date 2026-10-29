@@ -16,3 +16,5 @@
 .pf-list-top{display:flex;align-items:center;gap:10px;padding-top:8px}.pf-list-top input{flex:1;min-width:0;min-height:46px;border:0;border-radius:14px;background:#edf0f8;padding:13px;font:inherit;color:var(--ink)}.pf-list-top .pf-add{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;border:0;border-radius:13px;background:#e9e6f7;color:#6255a4;padding:0;line-height:1}.pf-drag{display:grid;place-items:center}.pf-drag svg{display:block;width:18px;height:24px}
 
 .pf-list-card.pf-drop{box-shadow:inset 0 -2px #9c90c8}.pf-list-card.pf-dragging{opacity:.65}
+
+html body.ml-app .pf-list-card .pf-pair-delete{flex:0 0 auto;min-width:36px;min-height:40px;padding:4px;margin:0;border:0;background:transparent;color:#827397;font:12px/1.4 var(--ui-font);font-weight:400}
