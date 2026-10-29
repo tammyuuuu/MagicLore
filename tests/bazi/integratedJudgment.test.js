@@ -10,7 +10,8 @@ import { analyzeBaziPeriod,scoreLuckCycles,cycleStart,SCORE_POLICY } from '../..
 import { buildUnifiedBaziInsight } from '../../src/bazi/rules/integratedInsight.js';
 import { calculateBaziWithPatterns } from '../../src/bazi/services/analyzeBazi.js';
 import { renderTrendSvg } from '../../src/bazi/ui/trendChart.js';
-import {balancedFlowEffects,balancedFlowProfile,flowActors} from '../../src/bazi/rules/balancedFlow.js';
+import {balancedFlowEffects,balancedFlowProfile,flowActors,indirectThemeEffects} from '../../src/bazi/rules/balancedFlow.js';
+import {periodCapacityEffects} from '../../src/bazi/rules/periodCapacity.js';
 
 const keys=['year','month','day','hour'];
 function chart(text,gender='female'){
@@ -19,6 +20,97 @@ function chart(text,gender='female'){
 const analyze=text=>analyzeBaziJudgment(chart(text));
 const freeze=o=>{Object.freeze(o);for(const v of Object.values(o))if(v&&typeof v==='object'&&!Object.isFrozen(v))freeze(v);return o;};
 const realInput={gender:'female',date:'1990-09-23',time:'14:30',place:'上海',timezoneId:'Asia/Shanghai',longitude:121.4737,latitude:31.2304,trueSolarTime:false,dayBoundaryRule:'midnight'};
+
+test('balanced charts score actual capacity changes without waiting for a named pattern',()=>{
+ const r=calculateBaziWithPatterns({...realInput,date:'1999-07-07',time:'06:00',gender:'male',place:'北京',longitude:116.4074,latitude:39.9042,trueSolarTime:true});
+ assert.deepEqual(Object.values(r.calculatedResult).map(p=>p.name),['己卯','庚午','庚申','己卯']);
+ assert.equal(r.judgmentAnalysis.level,'平衡');
+ const cycles=scoreLuckCycles(r);
+ for(const theme of ['overall','career','wealth','relationship']){
+  assert.ok(cycles.every(c=>Number.isFinite(c.scores[theme])),theme);
+  assert.ok(new Set(cycles.map(c=>c.scores[theme])).size>1);
+  assert.equal((renderTrendSvg(cycles,theme).match(/class="bt-line"/g)||[]).length,7);
+ }
+ for(const pillar of ['丁卯','丙寅']){
+  const p=analyzeBaziPeriod(r,[{pillar,id:'luck',source:'luck'}]),c=p.contributions.wealth.find(c=>c.id==='capacity-change');
+  assert.ok(c.value<0);assert.ok(c.evidence.guaranteedChange<0);assert.ok(c.evidence.anchors.length);
+  assert.equal(p.state.strength.kind,'weak');
+ }
+ const p=analyzeBaziPeriod(r,[{pillar:'戊辰',id:'luck',source:'luck'}]);
+ assert.ok(p.contributions.relationship.some(c=>c.id==='resource-capacity'&&c.evidence.actors.length===3));
+ // Direct analysis does not depend on the surrounding luck-cycle scores.
+ const stripped={...r,luckCycles:{...r.luckCycles,cycles:[]}};
+ assert.deepEqual(analyzeBaziPeriod(stripped,[{pillar:'丁卯',id:'luck',source:'luck'}]).scores,analyzeBaziPeriod(r,[{pillar:'丁卯',id:'luck',source:'luck'}]).scores);
+});
+
+test('capacity uses guaranteed direction and real anchors, never an interval midpoint or invented load',()=>{
+ const r=calculateBaziWithPatterns({...realInput,date:'1999-07-07',time:'06:00',gender:'male'}),baseline=r.judgmentAnalysis;
+ const state=analyzeBaziJudgment(r,[{pillar:'丁卯',id:'luck',source:'luck'}]);
+ const disputed={...state,strength:{...state.strength,interval:[.35,.55]}};
+ const ranges=[];
+ assert.equal(periodCapacityEffects(baseline,disputed,(theme,u)=>ranges.push({theme,...u})).some(e=>e.id==='capacity-change'),false);
+ assert.ok(ranges.some(u=>u.theme==='wealth'&&u.low<0&&u.high===0));
+ const noAnchors={...baseline,facts:{...baseline.facts,natal:[]}};
+ assert.deepEqual(periodCapacityEffects(noAnchors,state),[]);
+ assert.deepEqual(periodCapacityEffects({...baseline,special:{status:'uncertain'}},state),[]);
+ assert.deepEqual(periodCapacityEffects(baseline,{...state,special:{status:'uncertain'}}),[]);
+ assert.equal(periodCapacityEffects(baseline,baseline).some(e=>e.id==='capacity-change'),false);
+});
+
+test('summer weak wood: resource and authority periods retain actual indirect thematic effects',()=>{
+ const r=calculateBaziWithPatterns({...realInput,date:'2002-06-15',time:'12:00',place:'北京',longitude:116.4074,latitude:39.9042,trueSolarTime:true});
+ assert.equal(r.judgmentAnalysis.dayMaster,'甲');assert.equal(r.judgmentAnalysis.level,'身弱');
+ const p=analyzeBaziPeriod(r,[{pillar:'庚子',source:'luck',id:'luck'}]);
+ const support=p.contributions.wealth.find(c=>c.id==='indirect-resource-peer-1');
+ assert.ok(support.value>0);assert.ok(support.evidence.some(e=>e.id==='luck'&&e.element==='水'));
+ assert.ok(support.evidence.some(e=>e.id==='day'&&e.element==='木'));
+ assert.ok(p.contributions.wealth.some(c=>c.id==='indirect-resource-output--1'&&c.value>0));
+ assert.equal(p.contributions.wealth.some(c=>c.id==='incoming-element'),false);
+ const cycles=scoreLuckCycles(r);
+ assert.deepEqual(cycles.map(c=>c.pillar),['乙巳','甲辰','癸卯','壬寅','辛丑','庚子','己亥','戊戌']);
+ for(const theme of ['overall','career','wealth','relationship']){
+  assert.ok(cycles.every(c=>Number.isFinite(c.scores[theme])));
+  assert.equal((renderTrendSvg(cycles,theme).match(/class="bt-line"/g)||[]).length,7);
+  for(const c of cycles){assert.ok(c.contributions[theme].length);assert.equal(c.scores[theme],Math.round(Math.max(0,Math.min(100,50+c.contributions[theme].reduce((s,x)=>s+x.value,0)))*10)/10);}
+ }
+ const stage=analyzeBaziPeriod(r,[{pillar:'戊戌',source:'luck',id:'luck'}]);
+ assert.equal(stage.state.special.status,'ordinary');assert.equal(stage.state.special.phase,'ordinary-period-actions');
+ assert.ok(stage.state.interactions.transformed.some(t=>t.kind==='三合'&&t.element==='火'));
+ assert.equal(stage.state.patternAnalysis.patterns.some(t=>t.name.startsWith('从')),false);
+});
+
+test('indirect thematic effects require known target direction and effective actors, not a generic resource bonus',()=>{
+ const r=calculateBaziWithPatterns({...realInput,date:'2002-06-15',time:'12:00'}),baseline=r.judgmentAnalysis;
+ const state=analyzeBaziJudgment(r,[{pillar:'庚子',source:'luck',id:'luck'}]);
+ const groups={wealth:['wealth','output','peer']};
+ const effects=indirectThemeEffects(baseline,state,groups);assert.ok(effects.length);
+ const unresolved={...baseline,preferences:{...baseline.preferences,evaluations:baseline.preferences.evaluations.map(e=>({...e,sign:null}))}};
+ assert.deepEqual(indirectThemeEffects(unresolved,state,groups),[]);
+ assert.deepEqual(indirectThemeEffects(baseline,baseline,groups),[]);
+ assert.deepEqual(indirectThemeEffects({...baseline,special:{status:'uncertain'}},state,groups),[]);
+ const reversed={...baseline,preferences:{...baseline.preferences,evaluations:baseline.preferences.evaluations.map(e=>({...e,sign:e.sign===null?null:-e.sign}))}};
+ const inverse=indirectThemeEffects(reversed,state,groups);
+ assert.deepEqual(inverse.map(e=>e.direction),effects.map(e=>-e.direction));
+ const blocked={...state,interactions:{...state.interactions,boundIds:[...state.interactions.boundIds,'luck']}};
+ assert.ok(indirectThemeEffects(baseline,blocked,groups).every(e=>e.evidence.every(a=>a.id!=='luck'||a.layer!=='stem')));
+});
+
+test('reported archive 1997-07-01 06:00 Beijing has eight evidence-backed points for every theme',()=>{
+ const r=calculateBaziWithPatterns({...realInput,date:'1997-07-01',time:'06:00',gender:'male',place:'北京',longitude:116.4074,latitude:39.9042,trueSolarTime:true});
+ assert.deepEqual(Object.values(r.calculatedResult).map(p=>p.name),['丁丑','丙午','甲辰','丁卯']);
+ assert.equal(r.judgmentAnalysis.level,'身弱');
+ const cycles=scoreLuckCycles(r);assert.equal(cycles[5].pillar,'庚子');
+ for(const theme of ['overall','career','wealth','relationship']){
+  assert.ok(cycles.every(c=>Number.isFinite(c.scores[theme])));
+  assert.equal((renderTrendSvg(cycles,theme).match(/class="bt-line"/g)||[]).length,7);
+  for(const c of cycles){
+   assert.equal(c.scores[theme],Math.round(Math.max(0,Math.min(100,50+c.contributions[theme].reduce((s,x)=>s+x.value,0)))*10)/10);
+   for(const sentence of c.themes[theme].split('。').filter(Boolean))assert.ok(c.contributions[theme].some(x=>x.text.includes(sentence)));
+  }
+ }
+ assert.ok(cycles[5].contributions.wealth.some(c=>c.id==='indirect-resource-peer-1'));
+ assert.ok(cycles[5].contributions.wealth.some(c=>c.id==='indirect-authority-peer--1'&&c.value<0));
+});
 
 test('a same-element temporary day join does not reclassify an ordinary natal chart as disputed transformation',()=>{
  const natal=analyze('戊戌 乙酉 庚申 壬午');
@@ -122,12 +214,13 @@ test('Beijing 2000-01-01 noon preserves clashed support roots and scores eight a
  }
 });
 
-test('a computed neutral score retains both real opposing contributions rather than a default 50',()=>{
+test('cancelling incoming effects remain separate from independently computed capacity',()=>{
  const r=calculateBaziWithPatterns({...realInput,date:'1990-01-16',time:'01:30',gender:'female'});
  const p=analyzeBaziPeriod(r,[{pillar:'甲申',source:'luck',id:'luck'}]);
- assert.equal(p.scores.relationship,50);
- assert.deepEqual(p.contributions.relationship.map(c=>[c.id,c.value]),[['incoming-support',4],['incoming-load',-4]]);
- assert.match(p.themes.relationship,/支持/);assert.match(p.themes.relationship,/节制/);
+ assert.deepEqual(p.contributions.relationship.filter(c=>c.id.startsWith('incoming-')).map(c=>[c.id,c.value]),[['incoming-support',4],['incoming-load',-4]]);
+ assert.ok(p.contributions.relationship.some(c=>c.id==='capacity-change'&&c.evidence.axis==='strength-distance'));
+ assert.equal(p.scores.relationship,Math.round((50+p.contributions.relationship.reduce((s,c)=>s+c.value,0))*10)/10);
+ assert.ok(p.contributions.relationship.some(c=>/支持/.test(c.text)));assert.ok(p.contributions.relationship.some(c=>/节制/.test(c.text)));
 });
 
 test('Beijing 2000-01-05 noon retains the strength interval and computes all eight actual luck stages',()=>{

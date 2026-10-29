@@ -36,6 +36,33 @@ export function balancedFlowProfile(j){
  return [...new Map(valid.map(r=>[r.id,{id:r.id,text:r.text}])).values()];
 }
 export function flowActors(j){return flowContext().actors(j);}
+// Indirect thematic effects require an actual rooted/supplied period actor
+// acting on a natal actor in that theme. A resource is not itself money, but
+// can support a needed peer or restrain excessive output. Keep opposing paths
+// separately, and never use mere coexistence or an unresolved preference.
+export function indirectThemeEffects(baseline,state,themeGroups){
+ if(baseline.special.status!=='ordinary'||state.special.status!=='ordinary')return [];
+ const {actors,close}=flowContext(),current=actors(state),effects=[];
+ const labels={career:'工作中的承接与执行',wealth:'经营中的承载与产出',relationship:'相处中的支持与协调'};
+ for(const [theme,groups]of Object.entries(themeGroups)){
+  if(theme==='overall')continue;
+  for(const source of current.filter(a=>a.node.source!=='natal'&&!groups.includes(a.group)))
+   for(const target of current.filter(a=>a.node.source==='natal'&&groups.includes(a.group))){
+    if(!close(source,target))continue;
+    const sign=baseline.preferences.evaluations.find(p=>p.element===target.element)?.sign;
+    if(sign!==1&&sign!==-1)continue;
+    const action=generates(source.element,target.element)?1:controls(source.element,target.element)?-1:0;
+    if(!action)continue;
+    const direction=action*sign;
+    effects.push({theme,id:`indirect-${source.group}-${target.group}-${action}`,direction,
+     weight:Math.min(source.weight,target.weight),
+     text:direction>0?`阶段力量${action>0?'扶持命局需要的':'节制命局偏多的'}${{peer:'自身力量',resource:'学习支持',output:'表达与产出',wealth:'经营资源',authority:'职责压力'}[target.group]}，有助于${labels[theme]}。`:
+      `阶段力量${action>0?'加重命局偏多的':'削弱命局需要的'}${{peer:'自身力量',resource:'学习支持',output:'表达与产出',wealth:'经营资源',authority:'职责压力'}[target.group]}，${labels[theme]}需要更多协调。`,
+     evidence:[source,target].map(t=>({id:t.id,layer:t.layer,element:t.element,rootType:t.rootType,sources:t.sources||[]}))});
+   }
+ }
+ return effects;
+}
 export function balancedFlowEffects(baseline,state){
  if(baseline.strength.kind!=='balanced'||baseline.special.status!=='ordinary'||state.special.status!=='ordinary')return [];
  const {actors,close,routes}=flowContext();

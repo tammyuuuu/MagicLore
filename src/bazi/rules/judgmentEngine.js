@@ -21,6 +21,13 @@ export function analyzeBaziJudgment(input,periods=[]){
    else special={...original.special,status:'uncertain',phase:'disturbed',blockers:[...contrary.map(t=>`${t.id}引入逆势${t.element}`),...(disputed?['阶段争合或冲合主次未定']:[])]};
   }
   else if(special.status==='established')special={...special,status:'uncertain',phase:'temporary',blockers:['岁运暂时形成的气势不能直接认证为原局特殊格局']};
+  // A period changes the natal chart's operating conditions, not its birth
+  // identity. Root loss or temporary dominance is evaluated by the strength,
+  // interaction and preference axes, rather than reopening ordinary vs 从格.
+  // A genuinely different transformed day element remains a critical dispute.
+  const changesDayElement=interactions.transformed.some(r=>r.layer==='stem'&&r.ids.includes('day')&&r.element!==facts.dayElement);
+  if(original.special?.status==='ordinary'&&special.status==='uncertain'&&!changesDayElement)
+   special={...original.special,phase:'ordinary-period-actions'};
   // Annotate an already-ordinary same-qi join; do not clear any other dispute.
   // Its binding/transformation remains in the interaction graph for scoring.
   if(original.special?.status==='ordinary'&&special.status==='ordinary'&&

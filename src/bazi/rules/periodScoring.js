@@ -4,9 +4,10 @@ import { analyzeBaziJudgment } from './judgmentEngine.js';
 import { roleWeight,groupForElement,PHASE_WEIGHT } from './judgmentFacts.js';
 import { effectiveElement } from './interactions.js';
 import { lichunForYear } from '../core/solarTerms.js';
-import {balancedFlowEffects} from './balancedFlow.js';
+import {balancedFlowEffects,indirectThemeEffects} from './balancedFlow.js';
+import {periodCapacityEffects} from './periodCapacity.js';
 
-export const SCORE_POLICY=Object.freeze({version:'ziping-rule-trend-11',base:50,min:0,max:100,minimumCoverage:.8,
+export const SCORE_POLICY=Object.freeze({version:'ziping-rule-trend-13',base:50,min:0,max:100,minimumCoverage:.8,
  element:Object.freeze({overall:12,career:10,wealth:12,relationship:8}),balance:10,climate:8,formation:14,palace:12,flow:8});
 export const THEMES=Object.freeze(['overall','career','wealth','relationship']);
 // Priority: unavailable structural premise > unresolved component (excluded)
@@ -28,7 +29,10 @@ export function analyzeBaziPeriod(input,periods,baseline=analyzeBaziJudgment(inp
  const contributions=Object.fromEntries(THEMES.map(t=>[t,[]])),reasons=Object.fromEntries(THEMES.map(t=>[t,[]]));
  const themes=Object.fromEntries(THEMES.map(t=>[t,'该阶段暂缺少可确定的作用条件。']));
  const assessments=Object.fromEntries(THEMES.map(t=>[t,{status:'unavailable',range:null,uncertainties:[]}]));
- if(!baseline.facts||!state.facts)return {state,scores,contributions,reasons,themes,assessments};
+ if(!baseline.facts||!state.facts){
+  for(const theme of THEMES){reasons[theme].push('四柱或阶段干支不完整');assessments[theme].unavailableCause='invalid-input';}
+  return {state,scores,contributions,reasons,themes,assessments};
+ }
  const uncertain=(theme,id,low,high,text)=>{
   const list=assessments[theme].uncertainties,existing=list.find(x=>x.id===id);
   if(existing){existing.low=Math.min(existing.low,low);existing.high=Math.max(existing.high,high);}
@@ -66,6 +70,13 @@ export function analyzeBaziPeriod(input,periods,baseline=analyzeBaziJudgment(inp
   }
  }
  for(const effect of balancedFlowEffects(baseline,state))add(effect.theme,effect.id,
+  effect.direction*effect.weight*SCORE_POLICY.flow*SCORE_POLICY.element[effect.theme]/12,effect.text,effect.evidence);
+ for(const effect of indirectThemeEffects(baseline,state,themeGroups))add(effect.theme,effect.id,
+  effect.direction*effect.weight*SCORE_POLICY.flow*SCORE_POLICY.element[effect.theme]/12,effect.text,effect.evidence);
+ for(const effect of periodCapacityEffects(baseline,state,(theme,u)=>{
+  const scale=SCORE_POLICY.flow*SCORE_POLICY.element[theme]/12;
+  uncertain(theme,u.id,u.low*scale,u.high*scale,u.text);
+ }))add(effect.theme,effect.id,
   effect.direction*effect.weight*SCORE_POLICY.flow*SCORE_POLICY.element[effect.theme]/12,effect.text,effect.evidence);
  for(const theme of THEMES){
   if(theme==='relationship'&&!['male','female'].includes(state.facts.gender))block(theme,'缺少用于配偶星分栏的性别资料');
@@ -147,7 +158,20 @@ export function analyzeBaziPeriod(input,periods,baseline=analyzeBaziJudgment(inp
    assessments[theme].range=[round(clamp(base+u.reduce((s,x)=>s+x.low,0))),round(clamp(base+u.reduce((s,x)=>s+x.high,0)))];
    assessments[theme].status=u.length?'partial':'scored';
   }
-  themes[theme]=scores[theme]===null?'暂缺少足够信息，无法给出这一阶段的趋势。':certain.slice().sort((a,b)=>Math.abs(b.value)-Math.abs(a.value)).slice(0,2).map(c=>c.text).join('');
+  if(scores[theme]===null){
+   const cause=reasons[theme].some(r=>r.includes('原局特殊'))?'natal-identity':
+    reasons[theme].some(r=>r.includes('阶段特殊')||r.includes('原有从格'))?'period-identity':
+    reasons[theme].some(r=>r.includes('化气格'))?'transformation-theme':
+    reasons[theme].some(r=>r.includes('性别'))?'missing-gender':
+    assessments[theme].uncertainties.length?'unresolved-components':
+    baseline.preferences.evaluations.some(e=>e.sign===null)?'conditional-direction':'uncovered-context';
+   assessments[theme].unavailableCause=cause;
+   assessments[theme].diagnostics={natalBlockers:baseline.special.blockers,periodBlockers:state.special.blockers,
+    preferenceDirections:baseline.preferences.evaluations.map(e=>({element:e.element,sign:e.sign})),
+    strengthIntervals:{natal:baseline.strength.interval,period:state.strength.interval},
+    excludedRules:assessments[theme].uncertainties.map(x=>x.id)};
+  }
+  themes[theme]=scores[theme]===null?'暂无法可靠判断这一阶段的趋势。':certain.slice().sort((a,b)=>Math.abs(b.value)-Math.abs(a.value)).slice(0,2).map(c=>c.text).join('');
  }
  const stageClash=state.interactions.relations.some(r=>r.kind==='冲'&&r.ids.includes('month')&&r.ids.some(id=>fresh.some(n=>n.id===id)));
  const horse=b=>'寅午戌'.includes(b)?'申':'申子辰'.includes(b)?'寅':'巳酉丑'.includes(b)?'亥':'巳';

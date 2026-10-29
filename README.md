@@ -29,3 +29,5 @@ Windows 推荐双击 **Start-MagicLore.cmd**：自动启动/复用本机预览�
 深入移植遗留审计、保留边界和本轮验收见 [DEEP_CLEANUP_AUDIT.md](DEEP_CLEANUP_AUDIT.md)。`build:vedic` 是开发核对页入口，当前正式印占 UI 使用 `build:vedic:classic`。
 
 八字统一判断引擎包含格局、旺衰、从格、季节调候、干支作用与四主题岁运趋势。规则参数、经典结构回归和未评分边界见 [BAZI_ACCURACY.md](BAZI_ACCURACY.md#统一判断引擎-v22026-10-28)；趋势分是可复算的软件规则指标，尚未校准为事件概率。
+
+`pnpm test` 与 `pnpm run test:bazi` 会在单元测试后执行八字覆盖矩阵；也可单独运行 `pnpm run test:bazi:coverage`。矩阵覆盖 1960—2019 年、十二个月、双性别、四个地区及真太阳／民用时，并将实际遇到的日主与旺衰组合逐一测试六十甲子阶段，另含从格、专旺、化气结构反例。每个分数验证贡献复算与解读一致性，每个空值记录原因。若出现基准以外的未评分点或专题有效率下降，命令失败，明细写入本地 `maintenance/bazi-matrix.json`。不能通过盲目刷新 `tests/fixtures/bazi-matrix-baseline.json` 绕过失败；先核对实际作用和规则变更。已知未覆盖与争议项保留在报告中，基准通过不表示所有命盘均可可靠评分。
