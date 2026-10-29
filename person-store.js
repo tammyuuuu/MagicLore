@@ -2,6 +2,7 @@ import {NOTES_KEY,readNotes,validateNotes,mergeNotes} from './notes-store.js';
 import {STORES,LABELS,archiveRef,read as readLegacy,snapshot as legacySnapshot,parseBackup as parseLegacy,recover as recoverLegacy} from './profile-store.js';
 import {isoDate,offsetSeconds,resolveWallTime} from './profile-time.js';
 import {loadProfileCalendar} from './profile-calendar-loader.js';
+import {orderedProfileKeys} from './profile-order.js';
 export const PEOPLE_KEY='magiclore_people_v1';
 const PENDING='magiclore_people_pending_v1',JOURNAL='magiclore_people_recovery_v1';
 const copy=x=>JSON.parse(JSON.stringify(x));
@@ -74,6 +75,11 @@ export function retireOldRelationshipCharts(storage=localStorage){
   storage.setItem(marker,'1');
 }
 export function listPeople({includeDeleted=false}={},storage=localStorage){return readPeople(storage).records.filter(p=>includeDeleted||!p.deletedAt);}
+export function listOrderedPeople(options={},storage=localStorage){
+ const people=listPeople(options,storage),byKey=new Map(people.map(p=>['person:'+p.id,p]));
+ try{return orderedProfileKeys([...byKey.keys()],storage).map(key=>byKey.get(key));}
+ catch{return people;}
+}
 export function getPerson(id,storage=localStorage){return copy(readPeople(storage).records.find(p=>p.id===id)||null);}
 export function savePerson(facts,id=null,storage=localStorage){
   const data=readPeople(storage),index=id?data.records.findIndex(p=>p.id===id):-1;if(id&&index<0)throw Error('人物档案不存在，请重新打开。');

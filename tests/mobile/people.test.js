@@ -5,8 +5,19 @@ import {STORES} from '../../profile-store.js';
 import {resolveWallTime,offsetSeconds} from '../../profile-time.js';
 import {parseCivilTime} from '../../src/bazi/core/time.js';
 import {lunarToGregorian} from '../../profile-calendar.js';
+import {listOrderedPeople} from '../../person-store.js';
+import {orderedProfileKeys,PROFILE_ORDER_KEY} from '../../profile-order.js';
 function memory(){const data=new Map();return {getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k),data};}
 const facts=()=>({name:'测试人物',sex:null,notes:'出生证明',birth:{date:{calendar:'gregorian',value:'1995-08-12',isLeapMonth:null,gregorian:'1995-08-12',conversion:null},time:null,place:{status:'unknown',name:null,locationId:null,latitude:null,longitude:null,source:'unknown'},zone:{iana:null,fixedOffset:null,offsetChoice:null},originalInput:{date:'1995-08-12',time:null}}});
+
+test('排盘档案选择器与档案页共享自定义排序，忽略旧键且新档案稳定追加',()=>{
+ const s=memory(),a=savePerson({...facts(),name:'甲'},null,s),b=savePerson({...facts(),name:'乙'},null,s),c=savePerson({...facts(),name:'丙'},null,s);
+ s.setItem(PROFILE_ORDER_KEY,JSON.stringify(['pair:legacy','person:'+c.id,'person:deleted','person:'+a.id,'person:'+c.id]));
+ const rows=listOrderedPeople({},s);assert.deepEqual(rows.map(p=>p.id),[c.id,a.id,b.id]);
+ assert.deepEqual(orderedProfileKeys(listPeople({},s).map(p=>'person:'+p.id),s),rows.map(p=>'person:'+p.id));
+ setPersonDeleted(c.id,true,s);assert.deepEqual(listOrderedPeople({},s).map(p=>p.id),[a.id,b.id]);
+ s.setItem(PROFILE_ORDER_KEY,'invalid');assert.deepEqual(listOrderedPeople({},s).map(p=>p.id),[a.id,b.id]);
+});
 test('新建、编辑保持稳定人物 ID，客观资料不补时间地点或排盘选项',()=>{const s=memory(),p=savePerson(facts(),null,s),updated=savePerson({...p,name:'修改名称'},p.id,s);assert.equal(updated.id,p.id);assert.equal(updated.createdAt,p.createdAt);const input=getBirthFacts(p.id,s);assert.equal(input.time,null);assert.equal(input.latitude,null);assert.equal(input.timezoneId,null);assert.ok(input.missing.includes('time'));assert.ok(!('trueSolarTime' in input));assert.equal(listPeople({},s).length,1);});
 test('人物删除可恢复，已选档案不悬空，刷新读取后资料完整',()=>{const s=memory(),p=savePerson(facts(),null,s);selectPerson(p.id,s);assert.equal(getSelectedPerson(s).id,p.id);setPersonDeleted(p.id,true,s);assert.equal(getSelectedPerson(s),null);assert.equal(listPeople({},s).length,0);assert.equal(listPeople({includeDeleted:true},s).length,1);setPersonDeleted(p.id,false,s);assert.equal(getPerson(p.id,s).birth.originalInput.date,'1995-08-12');assert.equal(listPeople({},s).length,1);});
 test('过期编辑不会覆盖另一页面较新的资料',()=>{const s=memory(),p=savePerson(facts(),null,s);savePerson({...p,notes:'较新修改'},p.id,s);assert.throws(()=>savePerson({...p,notes:'过期编辑'},p.id,s),/其他页面修改/);assert.equal(getPerson(p.id,s).notes,'较新修改');});

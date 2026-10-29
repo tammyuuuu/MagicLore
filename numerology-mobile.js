@@ -1,4 +1,4 @@
-import {listPeople} from './person-store.js';
+import {listOrderedPeople as listPeople} from './person-store.js';
 // Compact numerology presentation; calculations and interpretation copy stay in their original modules.
 export function installNumerologyMobile(){
  if(!location.pathname.endsWith('destiny_book_web.html'))return;

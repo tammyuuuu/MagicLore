@@ -21,6 +21,12 @@ export function analyzeBaziJudgment(input,periods=[]){
    else special={...original.special,status:'uncertain',phase:'disturbed',blockers:[...contrary.map(t=>`${t.id}引入逆势${t.element}`),...(disputed?['阶段争合或冲合主次未定']:[])]};
   }
   else if(special.status==='established')special={...special,status:'uncertain',phase:'temporary',blockers:['岁运暂时形成的气势不能直接认证为原局特殊格局']};
+  // Annotate an already-ordinary same-qi join; do not clear any other dispute.
+  // Its binding/transformation remains in the interaction graph for scoring.
+  if(original.special?.status==='ordinary'&&special.status==='ordinary'&&
+     interactions.transformed.some(r=>r.layer==='stem'&&r.ids.includes('day')&&r.ids.some(id=>facts.periods.some(p=>p.id===id))&&r.element===facts.dayElement)){
+   special={...original.special,phase:'ordinary-same-qi-join'};
+  }
  }
  const climate=analyzeClimate(facts,interactions);
  let patternAnalysis=analyzeMonthPatterns(input,{facts,interactions,strength});

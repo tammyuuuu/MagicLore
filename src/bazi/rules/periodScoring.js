@@ -6,7 +6,7 @@ import { effectiveElement } from './interactions.js';
 import { lichunForYear } from '../core/solarTerms.js';
 import {balancedFlowEffects} from './balancedFlow.js';
 
-export const SCORE_POLICY=Object.freeze({version:'ziping-rule-trend-9',base:50,min:0,max:100,minimumCoverage:.8,
+export const SCORE_POLICY=Object.freeze({version:'ziping-rule-trend-11',base:50,min:0,max:100,minimumCoverage:.8,
  element:Object.freeze({overall:12,career:10,wealth:12,relationship:8}),balance:10,climate:8,formation:14,palace:12,flow:8});
 export const THEMES=Object.freeze(['overall','career','wealth','relationship']);
 // Priority: unavailable structural premise > unresolved component (excluded)
@@ -34,7 +34,7 @@ export function analyzeBaziPeriod(input,periods,baseline=analyzeBaziJudgment(inp
   if(existing){existing.low=Math.min(existing.low,low);existing.high=Math.max(existing.high,high);}
   else list.push({id,low,high,text});
  };
- const add=(theme,id,value,text)=>{if(value)contributions[theme].push(delta(id,value,text));};
+ const add=(theme,id,value,text,evidence)=>{if(value){const item=delta(id,value,text);if(evidence)item.evidence=evidence;contributions[theme].push(item);}};
  const block=(theme,text)=>reasons[theme].push(text);
  for(const theme of THEMES){
   if(baseline.special.status==='uncertain')block(theme,'原局特殊格局顺逆未定');
@@ -66,7 +66,7 @@ export function analyzeBaziPeriod(input,periods,baseline=analyzeBaziJudgment(inp
   }
  }
  for(const effect of balancedFlowEffects(baseline,state))add(effect.theme,effect.id,
-  effect.direction*effect.weight*SCORE_POLICY.flow*SCORE_POLICY.element[effect.theme]/12,effect.text);
+  effect.direction*effect.weight*SCORE_POLICY.flow*SCORE_POLICY.element[effect.theme]/12,effect.text,effect.evidence);
  for(const theme of THEMES){
   if(theme==='relationship'&&!['male','female'].includes(state.facts.gender))block(theme,'缺少用于配偶星分栏的性别资料');
   let total=0,value=0,uncertain=0,positive=0,negative=0;

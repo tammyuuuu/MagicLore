@@ -1,6 +1,7 @@
 import {readPeople,listPeople,getPerson,savePerson,setPersonDeleted,selectPerson,legacyRecords,personFromLegacy,hideLegacy} from './person-store.js';
 import {resolveWallTime} from './profile-time.js';
 import {mountPersonEditor} from './person-editor.js';
+import {orderedProfileKeys} from './profile-order.js';
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dateText=p=>p.birth.date.value?`${p.birth.date.calendar==='lunar'?'农历'+(p.birth.date.isLeapMonth===null?'（闰月待核对） ':p.birth.date.isLeapMonth?'闰月 ':' '):'公历 '}${p.birth.date.value}`:'出生日期未知';
 const timeText=p=>p.birth.time||'时间未知';
@@ -42,8 +43,7 @@ export function mountProfiles(main,{notify,backup,initialView='people',managemen
       const r=item.record,index=legacy.rows.filter(x=>x.type==='relationship').findIndex(x=>x.key===item.key);
       rows.push({deleteKey:item.key,key:'pair:'+(r.id||item.key),name:r.title||r.name||'关系合盘',info:`${r.isoA||'日期未知'} × ${r.isoB||'日期未知'}`,open:()=>{location.href=`destiny_book_web.html?mlStore=relationship&mlArchive=${index}&mlRef=${encodeURIComponent(item.ref)}#match`;}});
     }
-    let stored=[];try{const raw=JSON.parse(localStorage.getItem('magiclore_profile_order_v1')||'[]');if(Array.isArray(raw))stored=raw.filter(k=>typeof k==='string');}catch{notify('排序记录无法读取，档案资料未受影响。');}
-    const ordered=[...new Set([...stored,...rows.map(r=>r.key)])].filter(k=>rows.some(r=>r.key===k));
+    let ordered;try{ordered=orderedProfileKeys(rows.map(r=>r.key));}catch{ordered=rows.map(r=>r.key);notify('排序记录无法读取，档案资料未受影响。');}
     const visible=ordered.map(key=>rows.find(r=>r.key===key)).filter(r=>matches(r.name+' '+r.info));
     list.classList.add('pf-compact-list');
     for(const row of visible){

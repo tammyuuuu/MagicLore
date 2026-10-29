@@ -10,7 +10,7 @@ import { analyzeBaziPeriod,scoreLuckCycles,cycleStart,SCORE_POLICY } from '../..
 import { buildUnifiedBaziInsight } from '../../src/bazi/rules/integratedInsight.js';
 import { calculateBaziWithPatterns } from '../../src/bazi/services/analyzeBazi.js';
 import { renderTrendSvg } from '../../src/bazi/ui/trendChart.js';
-import {balancedFlowEffects,balancedFlowProfile} from '../../src/bazi/rules/balancedFlow.js';
+import {balancedFlowEffects,balancedFlowProfile,flowActors} from '../../src/bazi/rules/balancedFlow.js';
 
 const keys=['year','month','day','hour'];
 function chart(text,gender='female'){
@@ -19,6 +19,55 @@ function chart(text,gender='female'){
 const analyze=text=>analyzeBaziJudgment(chart(text));
 const freeze=o=>{Object.freeze(o);for(const v of Object.values(o))if(v&&typeof v==='object'&&!Object.isFrozen(v))freeze(v);return o;};
 const realInput={gender:'female',date:'1990-09-23',time:'14:30',place:'上海',timezoneId:'Asia/Shanghai',longitude:121.4737,latitude:31.2304,trueSolarTime:false,dayBoundaryRule:'midnight'};
+
+test('a same-element temporary day join does not reclassify an ordinary natal chart as disputed transformation',()=>{
+ const natal=analyze('戊戌 乙酉 庚申 壬午');
+ assert.equal(natal.special.status,'ordinary');assert.ok(natal.interactions.transformed.some(x=>x.layer==='stem'&&x.ids.includes('day')&&x.element===natal.element));
+ const r=calculateBaziWithPatterns({...realInput,gender:'male',date:'1999-10-05',time:'06:00',place:'北京',longitude:116.4074,latitude:39.9042,trueSolarTime:true});
+ assert.equal(r.judgmentAnalysis.level,'偏强');assert.equal(r.judgmentAnalysis.special.status,'ordinary');
+ const p=analyzeBaziPeriod(r,[{pillar:'乙丑',source:'luck',id:'luck'}]);
+ assert.equal(p.state.special.status,'ordinary');assert.equal(p.state.special.phase,'ordinary-same-qi-join');
+ assert.ok(p.state.interactions.transformed.some(x=>x.layer==='stem'&&x.ids.includes('day')&&x.element==='金'));
+ assert.equal(p.state.dayMaster,'庚');assert.equal(p.state.patternAnalysis.patterns.some(x=>x.name.startsWith('化')),false);
+ const cycles=scoreLuckCycles(r);assert.equal(cycles.at(-1).pillar,'乙丑');
+ for(const theme of ['overall','career','wealth','relationship']){
+  assert.ok(cycles.every(c=>Number.isFinite(c.scores[theme])));
+  assert.equal((renderTrendSvg(cycles,theme).match(/class="bt-line"/g)||[]).length,7);
+  for(const c of cycles){assert.ok(c.contributions[theme].length);assert.equal(c.scores[theme],Math.round(Math.max(0,Math.min(100,50+c.contributions[theme].reduce((s,x)=>s+x.value,0)))*10)/10);}
+ }
+});
+
+test('a temporary join changing the day-master element still preserves the unresolved structural gate',()=>{
+ const r=calculateBaziWithPatterns({...realInput,gender:'female',date:'1991-06-22',time:'17:30'});
+ assert.equal(r.judgmentAnalysis.special.status,'ordinary');
+ const p=analyzeBaziPeriod(r,[{pillar:'戊戌',source:'luck',id:'luck'}]);
+ assert.ok(p.state.interactions.transformed.some(x=>x.layer==='stem'&&x.ids.includes('day')&&x.element!==p.state.element));
+ assert.equal(p.state.special.status,'uncertain');assert.ok(Object.values(p.scores).every(v=>v===null));
+});
+
+test('Beijing 2000-02-07 14:00 counts same-pillar flow and supplied qi without claiming a direct root',()=>{
+ const r=calculateBaziWithPatterns({...realInput,gender:'male',date:'2000-02-07',time:'14:00',place:'北京',longitude:116.4074,latitude:39.9042,trueSolarTime:true});
+ assert.equal(r.judgmentAnalysis.level,'平衡');
+ const p=analyzeBaziPeriod(r,[{pillar:'庚辰',source:'luck',id:'luck'}]);
+ const actors=flowActors(p.state),metal=actors.find(a=>a.id==='year'&&a.layer==='stem');
+ assert.equal(metal.rootType,'supplied');assert.equal(metal.rooted,false);assert.ok(metal.sources.includes('year'));assert.ok(metal.sources.includes('luck'));
+ assert.ok(!actors.some(a=>a.id==='luck'&&a.layer==='stem')); // 庚与日干乙合绊，不借供源强行启用。
+ const effects=balancedFlowEffects(r.judgmentAnalysis,p.state);
+ assert.ok(effects.some(e=>e.id==='flow-wealth-authority'&&e.evidence.some(a=>a.id==='luck')&&e.evidence.some(a=>a.id==='year'&&a.rootType==='supplied')));
+ assert.ok(balancedFlowProfile(r.judgmentAnalysis).some(e=>e.id==='wealth-authority'));
+ assert.equal(r.judgmentAnalysis.patternAnalysis.status,'uncertain');
+ for(const cycle of scoreLuckCycles(r))for(const t of ['overall','career','wealth','relationship']){
+  assert.ok(Number.isFinite(cycle.scores[t]));assert.ok(cycle.contributions[t].length);
+  assert.equal(cycle.scores[t],Math.round(Math.max(0,Math.min(100,50+cycle.contributions[t].reduce((sum,c)=>sum+c.value,0)))*10)/10);
+ }
+});
+
+test('one-step supply cannot recursively create a rootless fire-earth-metal chain',()=>{
+ const input=chart('庚子 戊子 乙卯 丁亥');
+ const j=analyzeBaziJudgment(input,[{pillar:'戊子',source:'luck',id:'luck'}]),actors=flowActors(j);
+ assert.ok(actors.some(a=>a.element==='火'&&a.rootType==='supplied'));
+ assert.ok(!actors.some(a=>a.element==='土'||a.element==='金'));
+});
 
 test('seven strength grades have reproducible independent theme scores and matching interpretations',()=>{
  const samples=[['身弱','1991-01-17','02:30'],['偏弱','1990-10-25','04:30'],['平衡','1990-06-21','16:30'],['偏强','1990-01-16','01:30'],['身强','1990-09-24','01:30']].map(([level,date,time])=>({level,r:calculateBaziWithPatterns({...realInput,gender:'male',date,time})}));

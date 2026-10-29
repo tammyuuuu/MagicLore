@@ -130,7 +130,9 @@ export function classifySpecial(facts,interactions,strength){
  const inverseRoots=branches.filter(t=>supports(t.element));
  const seasonMain=effectiveElement(facts.natal[1],'branch',interactions)||facts.natal[1].hidden[0].element;
  const dayJoin=interactions.transformed.find(r=>r.layer==='stem'&&r.ids.includes('day'));
- if(dayJoin){
+ // Joining toward the day master's existing element is an ordinary same-qi
+ // action, not evidence that the master has changed identity into 化气格.
+ if(dayJoin&&dayJoin.element!==same){
   const originalRoot=branches.some(t=>t.element===same);
   const branchSupport=interactions.transformed.some(r=>r.layer==='branch'&&r.element===dayJoin.element&&r.ids.includes('month'))||
     seasonMain===dayJoin.element&&facts.natal.filter(n=>n.hidden[0].element===dayJoin.element).length>=3;

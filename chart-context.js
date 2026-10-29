@@ -1,5 +1,6 @@
 import {CHART_SYSTEMS,chartURL,chartProfileInput} from './chart-profile.js';
-import {listPeople,ensureDefaultPerson,getPerson,getSelectedPerson,selectPerson} from './person-store.js';
+import {listOrderedPeople,ensureDefaultPerson,getPerson,getSelectedPerson,selectPerson} from './person-store.js';
+import {PROFILE_ORDER_KEY} from './profile-order.js';
 import {homeIcon} from './home-icons.js';
 export async function installChartContext({header,nav}){
  const system=CHART_SYSTEMS.find(r=>location.pathname.endsWith(r[1]))?.[0];if(!system)return;
@@ -18,7 +19,7 @@ export async function installChartContext({header,nav}){
  const menu=panel.querySelector('.mc-settings-menu');for(const [hash,label]of modes){const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=()=>{if(system==='bazi'){document.querySelector('[data-module="chart"]')?.click();}else location.hash=hash;panel.querySelector('details').open=false;};menu.append(b);}
  if(system==='western'||system==='vedic'){const b=document.createElement('button');b.type='button';b.textContent='排盘参数';b.onclick=()=>{location.hash='natal';panel.querySelector('details').open=false;};menu.append(b);}
  const updateMode=()=>{const hash=location.hash.slice(1);panel.querySelector('.mc-current-mode').textContent=(hash==='natal'?'排盘参数':modes.find(([key])=>key===hash)?.[1])||modes[0][1];};window.addEventListener('hashchange',updateMode);updateMode();
- const refresh=()=>{const selected=choice.value;choice.replaceChildren(new Option('选择档案',''));try{for(const person of listPeople())choice.append(new Option(person.name,person.id));choice.value=selected;}catch(e){message.textContent=e.message;message.hidden=false;}};refresh();
+ const refresh=()=>{const selected=choice.value;choice.replaceChildren(new Option('选择档案',''));try{for(const person of listOrderedPeople())choice.append(new Option(person.name,person.id));choice.value=selected;}catch(e){message.textContent=e.message;message.hidden=false;}};refresh();
  async function apply(id){const run=++sequence;activeId=id||null;message.hidden=true;edit.hidden=!id;choice.value=id||'';updateNav();document.body.dataset.mcProfile=old&&!id?'ready':'pending';
   if(!id){if(!old){message.textContent='选择一份人物档案，或新建出生资料。';message.hidden=false;}return;}
   edit.href='index.html?mlEdit='+encodeURIComponent(id)+'&mlCreate='+system+'#profiles';
@@ -36,7 +37,8 @@ export async function installChartContext({header,nav}){
  }
  choice.onchange=()=>{if(!choice.value){selectPerson(null);const url=new URL(location.href);url.searchParams.delete('mlPerson');history.replaceState(null,'',url);}apply(choice.value);};
  window.addEventListener('pageshow',()=>{refresh();if(activeId){const p=getPerson(activeId);if(!p||p.deletedAt)apply('');}});
- window.addEventListener('storage',event=>{if(event.key==='magiclore_people_v1'){refresh();if(activeId)apply(activeId);}});
+ window.addEventListener('storage',event=>{if(event.key==='magiclore_people_v1'){refresh();if(activeId)apply(activeId);}else if(event.key===PROFILE_ORDER_KEY)refresh();});
+ window.addEventListener('focus',refresh);
  let initial=new URLSearchParams(location.search).get('mlPerson');if(!initial&&!old){try{initial=getSelectedPerson()?.id;}catch{}}
  if(!old&&!initial&&(system==='western'||system==='vedic')&&!location.hash)location.hash='report';
  await apply(initial||'');
