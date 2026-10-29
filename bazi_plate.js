@@ -50,6 +50,7 @@ window.describeBaziPosition=function(r,p,index,part){
    const stages=columns?columns.slice(4,index+1):[p];
    const periods=stages.map(stage=>({pillar:stage.stem+stage.branch,id:stage.title?.startsWith('流月')?'month-period':stage.title?.startsWith('流年')?'annual':'luck',source:stage.title?.startsWith('流月')?'month':stage.title?.startsWith('流年')?'annual':'luck'}));
    const evaluated=window.analyzeBaziPeriod(r,periods),score=evaluated.scores.overall;
+   const assessment=evaluated.assessments?.overall;
    return {title:`${p.title||'阶段'} · ${p.stem}${p.branch}`,text:`${Number.isFinite(score)?'综合 '+score+' 分。':''}${evaluated.themes.overall}`};
   }
   return {title:(p.title||'阶段')+' · '+p.stem+p.branch,text:'阶段判断尚未就绪。'};
@@ -57,7 +58,7 @@ window.describeBaziPosition=function(r,p,index,part){
  const meanings=part==='stem'?['年干象征早年环境、家庭背景及对外呈现。','月干象征工作中的表达、角色与社会参与。','日干代表日主本人，是整张命盘的参照。','时干象征个人投入、长期目标与后续发展。']:['年支象征家庭根基与早年生活环境。','月支代表月令，也关联成长环境与日常工作节奏。','日支是传统所说的婚姻宫，关联亲密关系与共同生活。','时支象征长期安排，也关联对子女、晚辈或作品的投入。'];
  const character=part==='stem'?p.stem:p.branch,element=part==='stem'?p.stemAttributes.element:p.branchAttributes.element;
  let text=meanings[index];
- if(part==='stem')text+=index===2?`本盘以${p.stem}${element}为日主，整体为${model?.level||j?.verdict||'旺衰待定'}。`:`本盘${character}属${element}，对应${p.tenGod}，在这个位置更侧重${roles[p.tenGod]||'该领域的生活安排'}。`;
+ if(part==='stem')text+=index===2?`本盘以${p.stem}${element}为日主。${model?.level?'整体为'+model.level+'。':''}`:`本盘${character}属${element}，对应${p.tenGod}，在这个位置更侧重${roles[p.tenGod]||'该领域的生活安排'}。`;
  else {const hidden=p.hiddenStems||[],main=hidden[0];text+=`${character}属${element}，藏${hidden.map(h=>h.stem).join('、')}。`+(main?`以${main.stem}的${main.tenGod}主题为主，更重视${roles[main.tenGod]||'该领域的生活安排'}。`:'');if(new Set(hidden.map(h=>model?.favorable.includes(h.element)?'喜':model?.avoid.includes(h.element)?'忌':'未定')).size>1)text+='';}
  const converted=model?.judgment?.interactions.transformed.find(change=>change.layer===(part==='stem'?'stem':'branch')&&change.ids.includes(['year','month','day','hour'][index]));
  if(converted)text+=`此处参与${converted.kind}，作用按${converted.element}观察。`;

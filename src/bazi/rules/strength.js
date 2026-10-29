@@ -1,5 +1,5 @@
 import { ELEMENTS } from '../data/fundamentals.js';
-import { elementAfter, seasonFactor, contextualSeasonFactor, roleWeight, canonicalStem,PHASE_WEIGHT } from './judgmentFacts.js';
+import { elementAfter, seasonFactor, contextualSeasonFactor, roleWeight, canonicalStem,PHASE_WEIGHT,DISPUTED_ROOT_AVAILABILITY } from './judgmentFacts.js';
 import { effectiveElement } from './interactions.js';
 import { STEM_BY_NAME } from '../data/fundamentals.js';
 import { getTenGod } from './tenGods.js';
@@ -14,7 +14,7 @@ export const classifyStrengthRatio=ratio=>{
  return STRENGTH_BANDS.find(b=>b.max===.42?snapped<b.max:snapped<=b.max)||STRENGTH_BANDS.at(-1);
 };
 const band=classifyStrengthRatio;
-export function analyzeStrength(facts,interactions){
+export function analyzeStrength(facts,interactions,{finalize=true}={}){
  const same=facts.dayElement,resource=elementAfter(same,4),supports=e=>e===same||e===resource;
  const weights=Object.fromEntries(ELEMENTS.map(e=>[e,0])),low={yes:0,no:0},high={yes:0,no:0},contributions=[],roots=[];
  const add=(e,base,range,source)=>{
@@ -35,10 +35,62 @@ export function analyzeStrength(facts,interactions){
  }
  const minimum=low.yes/(low.yes+high.no),maximum=high.yes/(high.yes+low.no),ratio=(minimum+maximum)/2;
  const first=band(minimum),last=band(maximum),stableKind=first.kind===last.kind;
- const uncertain=!stableKind;
- const level=first.label===last.label?first.label:stableKind?(first.kind==='weak'?'偏弱':first.kind==='strong'?'偏强':'平衡'):'旺衰待定';
- const kind=uncertain?'unknown':first.kind;
- return {level,kind,ratio,interval:[minimum,maximum],uncertain,weights,roots,contributions,
+ const intervalUncertain=!stableKind;
+ let uncertain=intervalUncertain;
+ let level=first.label===last.label?first.label:stableKind?(first.kind==='weak'?'偏弱':first.kind==='strong'?'偏强':'平衡'):null;
+ let kind=uncertain?'unknown':first.kind;
+ const tokens=effectiveTokens(facts,interactions);
+ const intact=tokens.filter(t=>!t.visible&&!interactions.disputedRootIds.includes(t.id));
+ const rooted=tokens.filter(t=>t.visible&&!t.bound&&intact.some(r=>r.element===t.element));
+ const support=rooted.filter(t=>supports(t.element)),drain=rooted.filter(t=>!supports(t.element));
+ const command=seasonFactor(same,facts.monthBranch)>=1.3;
+ const monthRoot=facts.natal[1].hidden[0].element===same&&!effectiveElement(facts.natal[1],'branch',interactions);
+ const intactSelf=roots.filter(r=>r.role==='main'&&!r.disputed);
+ const classificationEvidence={command,monthRoot,intactSelf:intactSelf.map(r=>r.id),support: support.map(t=>t.id),drain:drain.map(t=>t.id),rule:null};
+ // Resolve only adjacent weak/balanced or balanced/strong alternatives using
+ // independent qualitative evidence; no ratio midpoint and no following label.
+ const adjacent=first.kind==='weak'&&last.kind==='balanced'||first.kind==='balanced'&&last.kind==='strong';
+ if(intervalUncertain&&adjacent){
+  if(command&&monthRoot&&new Set(drain.map(t=>t.element)).size>=2&&support.length===0){
+   level='平衡';kind='balanced';uncertain=false;classificationEvidence.rule='得令通月根，财官食伤两路有根透出，无额外印比助势';
+  }else if(!command&&intactSelf.length===0&&support.length===0&&new Set(drain.map(t=>t.element)).size>=2){
+   level='偏弱';kind='weak';uncertain=false;classificationEvidence.rule='失令、无完整本气根及有根印比透援，泄耗制两路成立';
+  }else if(command&&intactSelf.length>=1&&support.length>=1&&drain.length===0){
+   level='偏强';kind='strong';uncertain=false;classificationEvidence.rule='得令、完整本气根与有根印比透援并见，无有效泄耗制透出';
+  }
+ }
+ if(uncertain&&finalize){
+  // A clash reduces a root's availability; it does not erase it. Final ordinary
+  // classification uses separate seasonal, rooted-branch, exposed-stem and
+  // actual-control evidence, rather than the midpoint of the ratio interval.
+  const branchEvidence=facts.nodes.map(n=>{
+   const ts=tokens.filter(t=>!t.visible&&t.id===n.id),clashed=interactions.disputedRootIds.includes(n.id);
+   const weight=t=>t.role==='main'?1:t.role==='middle'?.7:.4;
+   return {id:n.id,support:Math.max(0,...ts.filter(t=>supports(t.element)).map(weight)),demand:Math.max(0,...ts.filter(t=>!supports(t.element)).map(weight)),availability:clashed?DISPUTED_ROOT_AVAILABILITY:1,phase:PHASE_WEIGHT[n.source]};
+  });
+  const exposed=tokens.filter(t=>t.visible).map(t=>({id:t.id,support:supports(t.element),rooted:tokens.some(r=>!r.visible&&r.element===t.element),weight:(t.bound?.5:1)*PHASE_WEIGHT[facts.nodes.find(n=>n.id===t.id).source]}));
+  let supportScore=branchEvidence.reduce((s,b)=>s+b.support*b.availability*b.phase,0),demandScore=branchEvidence.reduce((s,b)=>s+b.demand*b.availability*b.phase,0);
+  for(const t of exposed){const value=t.weight*(t.rooted?1:.5);if(t.support)supportScore+=value;else demandScore+=value;}
+  if(command)supportScore+=1.25;else demandScore+=1.25;
+  const actualControl=[];
+  for(const r of interactions.relations.filter(r=>r.kind==='克'&&r.layer==='stem')){
+   const source=facts.nodes.find(n=>n.id===r.from),target=facts.nodes.find(n=>n.id===r.to);
+   if(!source||!target||interactions.boundIds.includes(source.id)||!tokens.some(t=>!t.visible&&t.element===source.element))continue;
+   if(supports(source.element)===supports(target.element))continue;
+   if(supports(target.element))demandScore+=.2;else supportScore+=.2;
+   actualControl.push({from:source.id,to:target.id});
+  }
+  const supportingBranches=branchEvidence.filter(b=>b.support>0).length,opposingBranches=branchEvidence.filter(b=>b.demand>0).length;
+  const supportStems=exposed.filter(t=>t.rooted&&t.support).length,demandStems=exposed.filter(t=>t.rooted&&!t.support).length;
+  if(command&&supportingBranches>=2&&supportStems>=2&&demandStems===0){level='身强';kind='strong';}
+  else if(!command&&supportingBranches===0&&supportStems===0&&opposingBranches>=2&&demandStems>=2){level='身弱';kind='weak';}
+  else if(supportScore-demandScore>.75){level='偏强';kind='strong';}
+  else if(demandScore-supportScore>.75){level='偏弱';kind='weak';}
+  else {level='平衡';kind='balanced';}
+  uncertain=false;
+  Object.assign(classificationEvidence,{rule:'月令、受冲仍存的根气、透干承接与实际生克综合定档',support:exposed.filter(t=>t.rooted&&t.support).map(t=>t.id),drain:exposed.filter(t=>t.rooted&&!t.support).map(t=>t.id),branchEvidence,exposed,actualControl,supportScore,demandScore});
+ }
+ return {level,kind,ratio,interval:[minimum,maximum],uncertain,intervalUncertain,classificationEvidence,weights,roots,contributions,
   mainRoots:roots.filter(r=>r.role==='main'&&!r.disputed),
   season:contextualSeasonFactor(same,facts),monthProgress:facts.monthProgress,method:'season-root-flow-v2',
   // The entire balanced interval has the same neutral support preference.
@@ -52,6 +104,19 @@ export function effectiveTokens(facts,interactions){
   const tokens=node.id==='day'?[]:[{id:node.id,layer:'stem',element:stemElement,stem:node.stem,visible:true,bound:interactions.boundIds.includes(node.id)}];
   return [...tokens,...(branchElement?[{id:node.id,layer:'branch',element:branchElement,stem:canonicalStem(branchElement),role:'main',transformed:true}]:node.hidden.map(h=>({...h,id:node.id,layer:'branch'})))];
  });
+}
+
+export function refineStrengthByPattern(strength,patterns,facts){
+ if(!strength.uncertain||!['established','rescued'].includes(patterns.status))return strength;
+ const [a,b]=strength.interval;
+ if(!(a<.42&&b<=.58||a>=.42&&b>.58))return strength;
+ const evidence=strength.classificationEvidence;
+ if(!evidence.intactSelf.length||!evidence.support.length||!evidence.drain.length||!patterns.assistantGods.length)return strength;
+ // The formation must already have been independently certified with the
+ // unknown body; a prospective/forced formation cannot resolve its own premise.
+ return {...strength,level:'平衡',kind:'balanced',uncertain:false,
+  classificationEvidence:{...evidence,rule:'完整本气根、有根印比与泄耗制并存，独立成立的格局相神维持两侧制化',pattern:patterns.patterns.map(p=>p.name)},
+  supportPreference:{method:'扶抑',favorable:[],avoid:[]}};
 }
 
 export function classifySpecial(facts,interactions,strength){
@@ -108,7 +173,13 @@ export function classifySpecial(facts,interactions,strength){
  }
  // A strict transformation structure additionally needs day-master participation,
  // absence of original roots and a branch transformation supporting the same qi.
- if((strength.ratio<.15||strength.ratio>.85)&&contested)return {...base,status:'uncertain',blockers:['极端气势伴有根气或合冲争议']};
+ // Extreme ratios do not themselves imply a following structure. An intact
+ // main support root excludes 从弱; intact rooted 财官 excludes 印比从强.
+ // Keep uncertainty only when the disputed action can change that premise.
+ const intactMain=branches.filter(t=>t.role==='main'&&!interactions.disputedRootIds.includes(t.id));
+ const excludesWeak=intactMain.some(t=>supports(t.element));
+ const excludesStrong=intactMain.some(t=>[elementAfter(same,2),elementAfter(same,3)].includes(t.element));
+ if(contested&&((strength.ratio<.15&&!excludesWeak)||(strength.ratio>.85&&!excludesStrong)))return {...base,status:'uncertain',blockers:['极端气势伴有根气或合冲争议']};
  const onlyWeakResource=branches.filter(t=>t.element===resource).every(t=>t.role==='residual')&&seasonFactor(resource,facts.monthBranch)<1;
  if(strength.ratio<.22&&!strength.mainRoots.length&&onlyWeakResource&&visible.filter(t=>t.element===resource).length===1)
   return {...base,status:'uncertain',blockers:['微弱印援是否有效，涉及普通身弱与从格分歧']};

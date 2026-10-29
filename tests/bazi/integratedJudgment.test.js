@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import fs from 'node:fs';
-import { makeJudgmentFacts } from '../../src/bazi/rules/judgmentFacts.js';
+import { makeJudgmentFacts,elementAfter } from '../../src/bazi/rules/judgmentFacts.js';
 import { analyzeBaziJudgment } from '../../src/bazi/rules/judgmentEngine.js';
 import { analyzeInteractions } from '../../src/bazi/rules/interactions.js';
 import { classifyStrengthRatio } from '../../src/bazi/rules/strength.js';
@@ -10,6 +10,7 @@ import { analyzeBaziPeriod,scoreLuckCycles,cycleStart,SCORE_POLICY } from '../..
 import { buildUnifiedBaziInsight } from '../../src/bazi/rules/integratedInsight.js';
 import { calculateBaziWithPatterns } from '../../src/bazi/services/analyzeBazi.js';
 import { renderTrendSvg } from '../../src/bazi/ui/trendChart.js';
+import {balancedFlowEffects,balancedFlowProfile} from '../../src/bazi/rules/balancedFlow.js';
 
 const keys=['year','month','day','hour'];
 function chart(text,gender='female'){
@@ -18,6 +19,151 @@ function chart(text,gender='female'){
 const analyze=text=>analyzeBaziJudgment(chart(text));
 const freeze=o=>{Object.freeze(o);for(const v of Object.values(o))if(v&&typeof v==='object'&&!Object.isFrozen(v))freeze(v);return o;};
 const realInput={gender:'female',date:'1990-09-23',time:'14:30',place:'上海',timezoneId:'Asia/Shanghai',longitude:121.4737,latitude:31.2304,trueSolarTime:false,dayBoundaryRule:'midnight'};
+
+test('seven strength grades have reproducible independent theme scores and matching interpretations',()=>{
+ const samples=[['身弱','1991-01-17','02:30'],['偏弱','1990-10-25','04:30'],['平衡','1990-06-21','16:30'],['偏强','1990-01-16','01:30'],['身强','1990-09-24','01:30']].map(([level,date,time])=>({level,r:calculateBaziWithPatterns({...realInput,gender:'male',date,time})}));
+ samples.push({level:'从弱',r:chart('辛巳 辛丑 乙酉 乙酉')},{level:'从强',r:chart('癸卯 乙卯 甲寅 乙亥')});
+ for(const {level,r}of samples){
+  const j=analyzeBaziJudgment(r);assert.equal(j.level,level);
+  const pillars=r.luckCycles?.cycles.map(c=>c.pillar)||['甲子','乙丑','丙寅','丁卯','戊辰','己巳','庚午','辛未'];
+  const results=pillars.map(pillar=>analyzeBaziPeriod(r,[{pillar,source:'luck',id:'luck'}]));
+  for(const t of ['overall','career','wealth','relationship']){
+   assert.ok(results.some(p=>Number.isFinite(p.scores[t])),level+' '+t);
+   for(const p of results)if(p.scores[t]!==null){
+    assert.ok(p.contributions[t].length);assert.equal(p.scores[t],Math.round(Math.max(0,Math.min(100,50+p.contributions[t].reduce((s,c)=>s+c.value,0)))*10)/10);
+    for(const sentence of p.themes[t].split('。').filter(Boolean))assert.ok(p.contributions[t].some(c=>c.text.includes(sentence)));
+   }
+  }
+ }
+});
+
+test('balanced charts use effective ten-god flow rather than default neutrality',()=>{
+ const r=calculateBaziWithPatterns({...realInput,date:'2000-01-05',time:'12:00',gender:'male',place:'北京',longitude:116.4074,latitude:39.9042,trueSolarTime:true}),j=r.judgmentAnalysis;
+ assert.equal(j.level,'平衡');assert.ok(balancedFlowProfile(j).length);
+ const results=r.luckCycles.cycles.map(c=>analyzeBaziPeriod(r,[{pillar:c.pillar,source:'luck',id:'luck'}]));
+ for(const t of ['overall','career','wealth','relationship']){
+  assert.ok(results.some(p=>p.contributions[t].some(c=>c.id.startsWith('flow-'))));
+  assert.ok(new Set(results.map(p=>p.scores[t]).filter(Number.isFinite)).size>1);
+ }
+ const missing=chart('甲子 乙酉 丙寅 丁亥');const x=analyzeBaziJudgment(missing);
+ assert.deepEqual(balancedFlowEffects({...j,special:{status:'uncertain'}},x),[]);
+ assert.deepEqual(balancedFlowProfile({...j,special:{status:'uncertain'}}),[]);
+});
+
+test('valid ordinary charts receive a final evidence-backed grade, while malformed data is rejected',()=>{
+ const j=calculateBaziWithPatterns({...realInput,date:'1990-11-26',time:'07:30',gender:'male'}).judgmentAnalysis;
+ assert.equal(j.strength.uncertain,false);assert.ok(['身弱','偏弱','平衡','偏强','身强'].includes(j.level));assert.ok(j.strength.classificationEvidence.rule);
+ assert.equal(analyzeBaziJudgment({}).facts,null);
+ const transformation=analyze('戊戌 戊戌 甲戌 己丑');assert.equal(transformation.special.level,'化气');assert.equal(transformation.level,null);
+});
+
+test('Beijing 2000-01-01 noon preserves clashed support roots and scores eight actual luck stages',()=>{
+ for(const trueSolarTime of [false,true]){
+  const r=calculateBaziWithPatterns({...realInput,date:'2000-01-01',time:'12:00',gender:'male',place:'北京',longitude:116.4074,latitude:39.9042,trueSolarTime}),j=r.judgmentAnalysis;
+  assert.equal(j.dayMaster,'戊');assert.equal(j.level,'偏强');assert.equal(j.special.status,'ordinary');
+  assert.ok(j.strength.classificationEvidence.branchEvidence.filter(b=>b.availability<1&&b.support>0).length>=2);
+  assert.ok(j.strength.classificationEvidence.support.includes('month'));
+  assert.ok(j.climate.supply.fire>0);assert.equal(j.climate.cold,false);
+  const cs=scoreLuckCycles(r);assert.equal(cs.length,8);
+  for(const t of ['overall','career','wealth','relationship']){
+   assert.ok(cs.every(c=>Number.isFinite(c.scores[t])));assert.ok(new Set(cs.map(c=>c.scores[t])).size>1);
+   for(const c of cs){assert.ok(c.contributions[t].length);assert.equal(c.scores[t],Math.round(Math.max(0,Math.min(100,50+c.contributions[t].reduce((s,x)=>s+x.value,0)))*10)/10);}
+   assert.equal((renderTrendSvg(cs,t).match(/class="bt-line"/g)||[]).length,7);
+  }
+ }
+});
+
+test('a computed neutral score retains both real opposing contributions rather than a default 50',()=>{
+ const r=calculateBaziWithPatterns({...realInput,date:'1990-01-16',time:'01:30',gender:'female'});
+ const p=analyzeBaziPeriod(r,[{pillar:'甲申',source:'luck',id:'luck'}]);
+ assert.equal(p.scores.relationship,50);
+ assert.deepEqual(p.contributions.relationship.map(c=>[c.id,c.value]),[['incoming-support',4],['incoming-load',-4]]);
+ assert.match(p.themes.relationship,/支持/);assert.match(p.themes.relationship,/节制/);
+});
+
+test('Beijing 2000-01-05 noon retains the strength interval and computes all eight actual luck stages',()=>{
+ for(const trueSolarTime of [false,true]){
+  const r=calculateBaziWithPatterns({...realInput,date:'2000-01-05',time:'12:00',gender:'male',place:'北京',longitude:116.4074,latitude:39.9042,trueSolarTime});
+  const j=r.judgmentAnalysis;assert.equal(j.dayMaster,'壬');assert.equal(j.level,'平衡');assert.equal(j.strength.uncertain,false);assert.equal(j.strength.intervalUncertain,true);
+  assert.match(j.strength.classificationEvidence.rule,/得令通月根/);
+  assert.deepEqual(j.preferences.favorable,[]);assert.equal(j.special.status,'ordinary');
+  const cycles=scoreLuckCycles(r);assert.equal(cycles.length,8);
+  assert.deepEqual(cycles.map(c=>c.pillar),['乙亥','甲戌','癸酉','壬申','辛未','庚午','己巳','戊辰']);
+  for(const theme of ['overall','career','wealth','relationship']){
+   assert.ok(cycles.every(c=>Number.isFinite(c.scores[theme])));
+   for(const c of cycles){
+    assert.ok(c.contributions[theme].length);
+    assert.equal(c.scores[theme],Math.round(Math.max(0,Math.min(100,50+c.contributions[theme].reduce((s,x)=>s+x.value,0)))*10)/10);
+   }
+   assert.equal((renderTrendSvg(cycles,theme).match(/class="bt-line"/g)||[]).length,7);
+  }
+  const originalRisk=Math.max(0,.42-j.strength.interval[0],j.strength.interval[1]-.58);
+  for(const c of cycles){
+   const p=analyzeBaziPeriod(r,[{pillar:c.pillar,source:'luck',id:'luck'}]);
+   const stageRisk=Math.max(0,.42-p.state.strength.interval[0],p.state.strength.interval[1]-.58);
+   const item=p.contributions.overall.find(x=>x.id==='strength-risk-change');assert.ok(item);
+   assert.equal(item.value,Math.round(Math.max(-1,Math.min(1,(originalRisk-stageRisk)/.2))*SCORE_POLICY.element.overall*10)/10);
+  }
+ }
+});
+
+test('intact support roots reject following-weak without converting every extreme clash into a special dispute',()=>{
+ const r=calculateBaziWithPatterns({...realInput,date:'1993-03-21',time:'10:30',gender:'male'}),j=r.judgmentAnalysis;
+ assert.ok(j.strength.ratio<.15);assert.equal(j.special.status,'ordinary');
+ assert.ok(j.preferences.favorable.length);assert.equal(j.patternAnalysis.patterns.some(p=>p.name.startsWith('从')),false);
+ const root=j.facts.nodes.find(n=>!j.interactions.disputedRootIds.includes(n.id)&&[j.element,elementAfter(j.element,4)].includes(n.hidden[0].element));assert.ok(root);
+ const unknown=analyze('壬寅 壬寅 庚寅 戊寅');assert.equal(unknown.special.status,'uncertain');
+});
+
+test('known incoming components survive an unresolved component in the same theme',()=>{
+ const r=calculateBaziWithPatterns({...realInput,date:'1990-09-24',time:'01:30',gender:'male'});
+ const p=analyzeBaziPeriod(r,[{pillar:'丁亥',source:'luck',id:'luck'}]);
+ assert.ok(p.assessments.overall.uncertainties.some(x=>x.id==='incoming-element-unresolved'));
+ assert.ok(p.contributions.overall.some(x=>x.id==='incoming-element'));
+ assert.equal(p.scores.overall,Math.round(Math.max(0,Math.min(100,50+p.contributions.overall.reduce((sum,c)=>sum+c.value,0)))*10)/10);
+});
+
+test('local contested combinations produce reproducible ranges without discarding independent rules',()=>{
+ const input=calculateBaziWithPatterns(realInput),cycles=scoreLuckCycles(input),cycle=cycles.find(c=>c.pillar==='庚辰');
+ assert.ok(cycle);
+ for(const theme of ['overall','career','wealth']){
+  const a=cycle.assessments[theme];assert.equal(a.status,'partial');assert.ok(a.range[0]<a.range[1]);
+  const base=50+cycle.contributions[theme].reduce((s,c)=>s+c.value,0);
+  const clamp=v=>Math.round(Math.max(0,Math.min(100,v))*10)/10;
+  assert.deepEqual(a.range,[clamp(base+a.uncertainties.reduce((s,u)=>s+u.low,0)),clamp(base+a.uncertainties.reduce((s,u)=>s+u.high,0))]);
+  assert.doesNotMatch(cycle.themes[theme],/评分范围|置信度|主次未定/);assert.ok(cycle.contributions[theme].length);
+ }
+ const direct=analyzeBaziPeriod(input,[{pillar:'庚辰',source:'luck',id:'luck'}]);
+ assert.deepEqual(direct.assessments,cycle.assessments);
+ const svg=renderTrendSvg(cycles,'wealth',4);assert.match(svg,/bt-line/);assert.doesNotMatch(svg,/bt-partial|bt-range|bt-missing/);
+ const altered=structuredClone(cycles);altered[3].scores.wealth=99;
+ assert.deepEqual(altered[4].assessments,cycle.assessments); // no neighboring score supplies the range
+ const unknown=analyzeBaziPeriod(chart('壬寅 壬寅 庚寅 戊寅'),[{pillar:'庚辰',source:'luck',id:'luck'}]);
+ assert.ok(Object.values(unknown.assessments).every(a=>a.status==='unavailable'&&a.range===null));
+});
+
+test('rendering distinguishes exact, bounded and unavailable points and never bridges unknowns',()=>{
+ const cs=[{pillar:'甲子',scores:{overall:60},assessments:{overall:{status:'scored',range:[60,60]}}},
+ {pillar:'乙丑',scores:{overall:45},assessments:{overall:{status:'partial',range:[30,70]}}},
+ {pillar:'丙寅',scores:{overall:null},assessments:{overall:{status:'unavailable',range:null}}},
+ {pillar:'丁卯',scores:{overall:80},assessments:{overall:{status:'scored',range:[80,80]}}}];
+ const svg=renderTrendSvg(cs);assert.equal((svg.match(/class="bt-line"/g)||[]).length,1);
+ assert.match(svg,/综合45分/);assert.doesNotMatch(svg,/30—70分|bt-range|bt-partial|bt-missing|NaN|undefined/);
+ assert.equal((svg.match(/class="bt-point"/g)||[]).length,3);
+});
+
+for(const [date,time]of [['1990-09-23','12:00'],['1990-09-23','14:30'],['1985-06-15','12:00']])test(`actual birth input ${date} ${time} produces four curves`,()=>{
+ const result=calculateBaziWithPatterns({...realInput,date,time}),cycles=scoreLuckCycles(result);
+ for(const theme of ['overall','career','wealth','relationship']){
+  assert.ok(cycles.some(c=>Number.isFinite(c.scores[theme])),theme);
+  for(const cycle of cycles){
+   if(cycle.scores[theme]===null)continue;
+   assert.ok(cycle.contributions[theme].length);
+   assert.equal(cycle.scores[theme],Math.round(Math.max(0,Math.min(100,50+cycle.contributions[theme].reduce((s,c)=>s+c.value,0)))*10)/10);
+  }
+  assert.match(renderTrendSvg(cycles,theme),/class="bt-point/);
+ }
+});
 
 test('balanced below and above 50% share the same neutral support preference',()=>{
  const below=analyze('己卯 辛亥 癸未 丙辰'),above=analyze('癸亥 乙未 辛酉 丁亥');
@@ -182,7 +328,7 @@ test('four scores are independently derived, and every finite score is reproduci
 test('no evidence, unresolved special structures or malformed stages yield no default 50',()=>{
  const noEvidence=chart('己卯 辛亥 癸未 丙辰');
  const r=analyzeBaziPeriod(noEvidence,[{pillar:'甲子',id:'luck',source:'luck'}]);
- assert.ok(Object.values(r.scores).every(v=>v===null));
+ for(const theme of ['overall','career','wealth','relationship'])if(r.scores[theme]!==null)assert.ok(r.contributions[theme].length);
  for(const periods of [null,{},[null],[{pillar:'甲卯',source:'luck',id:'luck'}],[{pillar:'甲子',source:'luck',id:'day'}],
   [{pillar:'甲子',source:'luck',id:'a'},{pillar:'乙丑',source:'luck',id:'b'}]]){
   const bad=analyzeBaziPeriod(chart('辛酉 戊寅 甲寅 壬子'),periods);assert.ok(Object.values(bad.scores).every(v=>v===null));
@@ -249,9 +395,9 @@ test('cached reports invalidate on a changed chart; evaluation is deterministic 
 test('trend chart does not bridge missing scores or turn them into zero; all themes have distinct data',()=>{
  const cycles=[{pillar:'甲子',startYear:2000,scores:{overall:30,career:70}},{pillar:'乙丑',startYear:2010,scores:{overall:null,career:60}},{pillar:'丙寅',startYear:2020,scores:{overall:80,career:50}}];
  const overall=renderTrendSvg(cycles,'overall',2),career=renderTrendSvg(cycles,'career',2);
- assert.equal((overall.match(/class="bt-line"/g)||[]).length,2);
- assert.equal((career.match(/class="bt-line"/g)||[]).length,1);
- assert.match(overall,/未评分/);assert.doesNotMatch(overall,/NaN|undefined/);assert.notEqual(overall,career);
+ assert.equal((overall.match(/class="bt-line"/g)||[]).length,0);
+ assert.equal((career.match(/class="bt-line"/g)||[]).length,2);
+ assert.match(overall,/暂无结果/);assert.doesNotMatch(overall,/NaN|undefined/);assert.notEqual(overall,career);
  assert.match(overall,/tabindex="0"/);assert.match(overall,/aria-pressed="true"/);
  assert.equal((overall.match(/class="bt-hit"/g)||[]).length,cycles.length);
 });

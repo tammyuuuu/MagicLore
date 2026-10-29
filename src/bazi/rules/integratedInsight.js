@@ -1,6 +1,7 @@
 import { analyzeBaziJudgment } from './judgmentEngine.js';
 import { scoreLuckCycles } from './periodScoring.js';
 import { elementAfter } from './judgmentFacts.js';
+import {balancedFlowProfile} from './balancedFlow.js';
 
 const cache=new WeakMap();
 export function buildUnifiedBaziInsight(input,now=new Date()){
@@ -24,10 +25,10 @@ export function buildUnifiedBaziInsight(input,now=new Date()){
  }
  const p=j.preferences;
  return {judgment:j,dayMaster:j.dayMaster,element:j.element,level:j.level,follow:j.special.level,
-  unresolved:!p.ready,favorable:p.favorable,avoid:p.avoid,conditional:p.conditional,
+  unresolved:!p.ready,favorable:p.favorable,avoid:p.avoid,conditional:p.conditional,balanceUse:balancedFlowProfile(j),
   supportPreference:j.strength.supportPreference,climate:j.climate,patternAnalysis:j.patternAnalysis,
   structureGod:j.patternAnalysis.structureGod,assistantGods:j.patternAnalysis.assistantGods,patterns:j.patternAnalysis.patterns,
-  cycles,events,dateYear,currentAnnualYear,scorePolicy:'规则趋势分0—100，非事件概率；空心点为未评分'};
+  cycles,events,dateYear,currentAnnualYear,scorePolicy:''};
 }
 
 export function legacyJudgmentView(input){

@@ -1,4 +1,5 @@
 import { effectiveTokens } from './strength.js';
+import {DISPUTED_ROOT_AVAILABILITY} from './judgmentFacts.js';
 
 // Seasonal climate is deliberately kept separate from 格局用神. These are
 // reproducible seasonal conditions, not an invented 120-entry classical table.
@@ -7,9 +8,10 @@ export function analyzeClimate(facts,interactions){
  const [temperature,moisture]=MONTH_CLIMATE[facts.monthBranch];
  const tokens=effectiveTokens(facts,interactions);
  const supply=element=>{
-  const roots=tokens.filter(t=>!t.visible&&t.element===element&&!interactions.disputedRootIds.includes(t.id));
+  const roots=tokens.filter(t=>!t.visible&&t.element===element);
+  const availability=r=>interactions.disputedRootIds.includes(r.id)?DISPUTED_ROOT_AVAILABILITY:1;
   const rootedVisible=tokens.filter(t=>t.visible&&!t.bound&&t.element===element&&roots.length);
-  return roots.reduce((sum,r)=>sum+(r.role==='main'?1:r.role==='middle'?.3:.2),0)+rootedVisible.length*.75;
+  return roots.reduce((sum,r)=>sum+(r.role==='main'?1:r.role==='middle'?.3:.2)*availability(r),0)+rootedVisible.length*.75*Math.max(0,...roots.map(availability));
  };
  const fire=supply('火'),water=supply('水');
  const cold=temperature<=-1&&fire<(temperature===-2?1.2:.6),hot=temperature>=1&&water<(temperature===2?1.2:.6);

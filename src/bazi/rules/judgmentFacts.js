@@ -6,6 +6,7 @@ import { SEXAGENARY_BY_NAME } from '../data/sexagenary.js';
 export const NATAL_KEYS=['year','month','day','hour'];
 export const JUDGMENT_VERSION='ziping-integrated-2';
 export const PHASE_WEIGHT=Object.freeze({natal:1,luck:.7,annual:.35,month:.175});
+export const DISPUTED_ROOT_AVAILABILITY=.65;
 export const elementAfter=(element,steps)=>ELEMENTS[(ELEMENTS.indexOf(element)+steps+5)%5];
 export const generates=(a,b)=>elementAfter(a,1)===b;
 export const controls=(a,b)=>elementAfter(a,2)===b;
