@@ -5,7 +5,7 @@
  const key='magiccat_western_chart_archive_v1';
  const read=()=>{const rows=JSON.parse(localStorage.getItem(key)||'[]');if(!Array.isArray(rows))throw new Error('档案格式无法读取。');return rows;};
  function picker(host,label){
-  const rows=window.CHINA_BIRTHPLACES||[],box=document.createElement('fieldset');box.className='residence-picker';
+  let rows=window.CHINA_BIRTHPLACES||[];const box=document.createElement('fieldset');box.className='residence-picker';
   const legend=document.createElement('legend');legend.textContent=label;box.append(legend);
   const regions=document.createElement('div');regions.className='china-place-regions';
   const province=document.createElement('select'),city=document.createElement('select'),district=document.createElement('select');
@@ -20,10 +20,12 @@
   function cities(){city.replaceChildren(new Option('请选择城市',''));const p=rows.find(r=>r.id===province.value);for(const r of rows.filter(r=>r.level===1&&p&&r.path.startsWith(p.path+' ')))city.append(new Option(r.name,r.id));districts();}
   function districts(){district.replaceChildren(new Option('全市（市中心）',''));const c=rows.find(r=>r.id===city.value);for(const r of rows.filter(r=>r.level===2&&c&&r.path.startsWith(c.path+' ')))district.append(new Option(r.name,r.id));}
   function apply(){const r=rows.find(r=>r.id===(district.value||city.value));place.value=r?.path||'';latitude.value=r?.lat??'';longitude.value=r?.lng??'';note.textContent=r?(r.lat==null||r.lng==null?'此地点暂无坐标，请手动补充纬度和经度。':'已填入地点参考坐标，可以按实际位置调整。'):'请选择省、市、区。';}
-  province.replaceChildren(new Option('请选择省份',''));for(const r of rows.filter(r=>r.level===0))province.append(new Option(r.path,r.id));cities();
+  function provinces(){province.replaceChildren(new Option('请选择省份',''));for(const r of rows.filter(r=>r.level===0))province.append(new Option(r.path,r.id));cities();}provinces();
   province.onchange=()=>{cities();apply();};city.onchange=()=>{districts();apply();};district.onchange=apply;
   manual.onclick=()=>{manualMode=!manualMode;regions.hidden=manualMode;details.hidden=!manualMode;manual.textContent=manualMode?'返回省市区选择':'使用自定义地点';place.readOnly=!manualMode;};place.readOnly=true;
-  return {get(){if(!place.value&&!latitude.value&&!longitude.value)return null;if(!place.value||latitude.value===''||longitude.value==='')throw new Error('请补全'+label+'名称、纬度和经度。');return {place:place.value,latitude:Number(latitude.value),longitude:Number(longitude.value)};},set(value){province.value='';cities();place.value=value?.place||'';latitude.value=value?.latitude??'';longitude.value=value?.longitude??'';const p=rows.find(r=>r.level===0&&value?.place?.startsWith(r.path));if(p){province.value=p.id;cities();const c=rows.find(r=>r.level===1&&value.place.startsWith(r.path));if(c){city.value=c.id;districts();district.value=rows.find(r=>r.level===2&&r.path===value.place)?.id||'';}}manualMode=!!value&&!p;regions.hidden=manualMode;details.hidden=!manualMode;place.readOnly=!manualMode;manual.textContent=manualMode?'返回省市区选择':'使用自定义地点';window.dispatchEvent(new Event('magiccat-place-restored'));},box};
+  const control={get(){if(!place.value&&!latitude.value&&!longitude.value)return null;if(!place.value||latitude.value===''||longitude.value==='')throw new Error('请补全'+label+'名称、纬度和经度。');return {place:place.value,latitude:Number(latitude.value),longitude:Number(longitude.value)};},set(value){province.value='';cities();place.value=value?.place||'';latitude.value=value?.latitude??'';longitude.value=value?.longitude??'';const p=rows.find(r=>r.level===0&&value?.place?.startsWith(r.path));if(p){province.value=p.id;cities();const c=rows.find(r=>r.level===1&&value.place.startsWith(r.path));if(c){city.value=c.id;districts();district.value=rows.find(r=>r.level===2&&r.path===value.place)?.id||'';}}manualMode=!!value&&!p;regions.hidden=manualMode;details.hidden=!manualMode;place.readOnly=!manualMode;manual.textContent=manualMode?'返回省市区选择':'使用自定义地点';window.dispatchEvent(new Event('magiccat-place-restored'));},box};
+  window.addEventListener('magiccat-place-data-ready',()=>{const saved=place.value||latitude.value||longitude.value?{place:place.value,latitude:latitude.value,longitude:longitude.value}:null;rows=window.CHINA_BIRTHPLACES||[];provinces();control.set(saved);});
+  return control;
  }
  const residenceHost=document.createElement('div');residenceHost.className='residence-host';
  const locationRow=document.createElement('div');locationRow.className='birth-location-row';

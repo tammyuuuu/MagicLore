@@ -1,5 +1,11 @@
 /* 结构解读小样：只解释已计算的干支关系，不以数量判定喜忌。 */
 window.renderBaziReading=function(r){
+ // The mobile reference tab owns the full report. Keep only its latest input
+ // during basic-chart rendering; calculating eight decades is user initiated.
+ if(document.body.classList.contains('ml-module')){window.pendingBaziReading=r;window.dispatchEvent(new Event('bazi-reading-updated'));return;}
+ return window.renderBaziReadingNow(r);
+};
+window.renderBaziReadingNow=function(r){
  const chart=document.getElementById('chart'),order=['year','month','day','hour'],labels=['年柱','月柱','日柱','时柱'],p=r.calculatedResult,dm=p.day.stemAttributes;
  let host=document.getElementById('baziReading');if(!host){host=document.createElement('section');host.id='baziReading';host.className='bazi-reading';(chart.closest('.bazi-overview')||chart.closest('.chart-wrap')).after(host);}
  if(window.renderBaziJudgment){window.renderBaziJudgment(r,host);return;}

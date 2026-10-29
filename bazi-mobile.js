@@ -7,7 +7,10 @@ export function installBaziMobile(){
  const reference=document.createElement('section');reference.className='bm-reference';reference.hidden=true;workspace.append(reference);
  const tabs=document.createElement('div');tabs.className='bm-tabs';tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','八字功能');modeRow.prepend(tabs);let current='basic';
  const buttons=new Map();function mark(key){current=key;for(const [id,button]of buttons)button.setAttribute('aria-selected',String(id===key));}
- function view(key){mark(key);reference.hidden=key!=='reference';rail.querySelector('[data-module="chart"]').click();if(key==='reference'){resultArea.hidden=true;form.hidden=true;}}
+ let renderedReading=null;
+ function ensureReading(){const r=window.pendingBaziReading||window.magicLoreBazi?.getResult();if(r&&r!==renderedReading){window.renderBaziReadingNow(r);renderedReading=r;moveReferences();}}
+ window.addEventListener('bazi-reading-updated',()=>{if(current==='reference')ensureReading();});
+ function view(key){mark(key);reference.hidden=key!=='reference';rail.querySelector('[data-module="chart"]').click();if(key==='reference'){ensureReading();resultArea.hidden=true;form.hidden=true;}}
  for(const [key,label]of [['basic','基础'],['reference','参考']]){const button=document.createElement('button');button.type='button';button.setAttribute('role','tab');button.textContent=label;button.onclick=()=>view(key);buttons.set(key,button);tabs.append(button);}mark('basic');
  context.querySelector('.mc-settings').remove();
  // The original form remains internal input state for the unchanged calculator.

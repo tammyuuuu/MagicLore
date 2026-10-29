@@ -1,6 +1,6 @@
 import {NOTES_KEY,readNotes,validateNotes,mergeNotes} from './notes-store.js';
 import {STORES,LABELS,archiveRef,read as readLegacy,snapshot as legacySnapshot,parseBackup as parseLegacy,recover as recoverLegacy} from './profile-store.js';
-import {isoDate,offsetSeconds,resolveWallTime} from './profile-time.js';
+import {isoDate,offsetSeconds,resolveWallTime,validateTimeZone} from './profile-time.js';
 import {loadProfileCalendar} from './profile-calendar-loader.js';
 import {orderedProfileKeys} from './profile-order.js';
 import {PROFILE_ORDER_KEY} from './profile-order.js';
@@ -26,7 +26,7 @@ export function validatePerson(p){
   if(place.status==='unknown'&&(place.name!==null||place.latitude!==null||place.longitude!==null))throw Error('未知地点不能带有推测坐标。');
   if(!zone||zone.iana!==null&&typeof zone.iana!=='string')throw Error('时区资料无效。');
   if(zone.iana!==null&&(!zone.iana.trim()||zone.iana.length>100))throw Error('时区无效，未知时请留空。');
-  if(zone.iana)new Intl.DateTimeFormat('en',{timeZone:zone.iana});
+  if(zone.iana)validateTimeZone(zone.iana);
   for(const field of ['fixedOffset','offsetChoice'])if(zone[field]!==null)offsetSeconds(zone[field]);
   if(p.residence!==undefined&&p.residence!==null){if(!p.residence.place||!p.residence.zone)throw Error('现居地点资料无效。');validatePerson({...p,residence:null,birth:{...p.birth,place:p.residence.place,zone:p.residence.zone}});}
   if(p.sex!==null&&!['female','male'].includes(p.sex))throw Error('性别资料无效。');

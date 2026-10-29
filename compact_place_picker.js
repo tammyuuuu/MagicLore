@@ -24,4 +24,5 @@
   refresh();
  }
  document.querySelectorAll('.china-place-regions').forEach(setup);
+ window.addEventListener('magiccat-place-picker-ready',()=>document.querySelectorAll('.china-place-regions').forEach(setup));
 })();

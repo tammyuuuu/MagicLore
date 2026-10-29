@@ -41,7 +41,8 @@ window.renderBaziPlate=function(r,columns,u){
 };
 // One shared reading panel for natal positions and selected time periods.
 window.describeBaziPosition=function(r,p,index,part){
- const model=window.buildBaziInsight?.(r),j=window.judgeBazi?.(r),natal=index<4;
+ // Position descriptions need natal judgment, not every luck/annual score.
+ const judgment=r.judgmentAnalysis||window.analyzeBaziJudgment?.(r),model=judgment?{judgment,level:judgment.level,favorable:judgment.preferences.favorable,avoid:judgment.preferences.avoid}:null,natal=index<4;
  const roles={比肩:'自主与平等协作',劫财:'同伴参与与资源分配',食神:'稳定表达与生活体验',伤官:'表达、改进与自主发挥',正财:'稳定经营与日常收支',偏财:'机会选择与资源合作',正官:'责任、规范与组织协作',七杀:'挑战、执行与压力',正印:'学习、支持与安全感',偏印:'专业探索与独立思考'};
  const favor=e=>!model?'':model.favorable.includes(e)?`${e}是命局偏喜的五行，较能顺应命局所需。`:model.avoid.includes(e)?`${e}是命局需要节制的五行，相关主题宜避免过度。`:'';
  if(!natal){

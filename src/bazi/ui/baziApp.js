@@ -12,6 +12,9 @@ const import_lunar_javascript={default:lunar};
     if (field) field.value = value;
   }
   function resultFromCurrentForm() {
+    // A selected luck/year never changes the birth input. Preserve object
+    // identity so natal judgment and report caches survive timeline selection.
+    if(activeResult&&JSON.stringify(inputSnapshot())===activeInputSignature)return activeResult;
     const d = new FormData(document.getElementById("form"));
     return calculateBazi({ gender: d.get("gender"), date: d.get("date"), time: d.get("time"), place: d.get("place"), timezoneId: d.get("timezoneId"), longitude: +d.get("longitude"), latitude: +d.get("latitude"), trueSolarTime: d.get("trueSolarTime") === "on", dayBoundaryRule: d.get("dayBoundaryRule") });
   }
@@ -143,6 +146,7 @@ const import_lunar_javascript={default:lunar};
   responsiveFortuneStyle.textContent = ".embedded .luck-row{display:grid;grid-template-columns:repeat(var(--luck-count,8),minmax(74px,1fr));width:100%;min-width:min(100%,var(--luck-min-width,592px));overflow-x:auto}.embedded .luck-row .pair{min-width:0;margin-top:4px;padding:0;border:0;border-radius:0;background:transparent}.embedded .fortune-grid{width:100%;min-width:100%;grid-auto-columns:minmax(58px,1fr)}@media(max-width:1050px){.embedded .fortune-grid{min-width:max-content}}";
   document.head.appendChild(responsiveFortuneStyle);
   var activeResult = null;
+  var activeInputSignature = null;
   var selectedCycleIndex = null;
   var selectedYearIndex = null;
   var selectedMonthPillar = null;
@@ -184,6 +188,7 @@ const import_lunar_javascript={default:lunar};
     $("error").textContent = "";
     try {
       activeResult = calculateBazi(inputSnapshot());
+      activeInputSignature=JSON.stringify(inputSnapshot());
       selectedCycleIndex = null;
       selectedYearIndex = null;
     selectedMonthPillar = null;

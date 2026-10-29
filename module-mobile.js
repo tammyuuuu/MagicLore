@@ -29,6 +29,7 @@ for(const button of document.querySelectorAll('.mc-new')){button.innerHTML='<svg
 
 }
 const originalPrepare=prepare;prepare=async()=>{try{await originalPrepare();document.body.dataset.mlReady='true';document.querySelector('.ml-startup')?.remove();}catch(error){console.error('移动端初始化失败',error);const startup=document.querySelector('.ml-startup');if(startup){startup.textContent='页面未能打开，请重新加载。';const retry=document.createElement('button');retry.type='button';retry.textContent='重新加载';retry.onclick=()=>location.reload();startup.append(retry);}}};
-if(document.readyState==='complete')prepare();else window.addEventListener('load',prepare,{once:true});
+// Wait for legacy DOM initializers, not images or optional background resources.
+if(document.readyState==='complete'||performance.getEntriesByType('navigation')[0]?.domContentLoadedEventStart)prepare();else document.addEventListener('DOMContentLoaded',()=>setTimeout(prepare,0),{once:true});
 window.addEventListener('error',event=>{if(/quota|storage|档案|JSON/i.test(event.message||'')){const p=document.createElement('p');p.className='ml-warning';p.setAttribute('role','alert');p.textContent='保存未完成，请先导出备份并检查设备存储空间。';header.after(p);}});
 registerPWA();
