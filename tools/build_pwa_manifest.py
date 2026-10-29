@@ -5,7 +5,7 @@ root=Path(__file__).resolve().parents[1]
 files={p.relative_to(root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in [*root.glob('*.html'),*root.glob('*.js'),*root.glob('*.css'),*root.glob('assets/home/*.webp'),*root.glob('icons/*'),*root.glob('vendor/*.js')] if p.is_file() and p.name!='sw.js'}
 files['src/western/aspectOrbs.js']=hashlib.sha256((root/'src/western/aspectOrbs.js').read_bytes()).hexdigest()
 files['manifest.webmanifest']=hashlib.sha256((root/'manifest.webmanifest').read_bytes()).hexdigest()
-shared=['chart-context.js','chart-profile.js','person-store.js','notes-store.js','profile-time.js','home-icons.js','home.css','mobile.css','typography.css','module-mobile.css','entry-loader.js','module-mobile.js','module-details.js','profile-store.js','pwa.js','birth-offset-loader.js']
+shared=['chart-context.js','chart-profile.js','person-store.js','notes-store.js','profile-time.js','home-icons.js','home.css','mobile.css','typography.css','module-mobile.css','entry-loader.js','module-mobile.js','module-mobile.web.js','module-details.js','profile-store.js','pwa.js','birth-offset-loader.js']
 modules={}
 for page in ['bazi_web.html','destiny_book_web.html','western_web.html','vedic_web.html']:
     refs=re.findall(r'<(?:script|link)[^>]*(?:src|href)="([^"?#]+)',(root/page).read_text(encoding='utf-8'))

@@ -4,3 +4,6 @@ for(const entry of ['app','module-mobile'])await build({entryPoints:[`${entry}.j
 await build({entryPoints:['src/civil-offset.js'],outfile:'civil-offset.file.js',bundle:true,format:'iife',globalName:'MagicLoreCivilOffset',platform:'browser',target:'safari15.4',minify:true,legalComments:'eof'});
 
 for(const format of ['esm','iife'])await build({entryPoints:['src/profile-calendar.js'],outfile:format==='esm'?'profile-calendar.js':'profile-calendar.file.js',bundle:true,format,...(format==='iife'?{globalName:'MagicLoreProfileCalendar'}:{}),platform:'browser',target:'safari15.4',minify:true,legalComments:'eof'});
+
+// Compact HTTP entries avoid serial module discovery on mobile networks.
+for(const entry of ['app','module-mobile'])await build({entryPoints:[`${entry}.js`],outfile:`${entry}.web.js`,bundle:true,format:'esm',platform:'browser',target:'safari15.4',minify:true,legalComments:'eof',external:['./civil-offset.js','./profile-calendar.js']});

@@ -8,7 +8,8 @@
   const houseFullscreenStyle=document.createElement('link');houseFullscreenStyle.rel='stylesheet';houseFullscreenStyle.href=new URL('vedic_house_fullscreen.css',baseUrl).href;document.head.appendChild(houseFullscreenStyle);
   function fail(error){const target=document.getElementById('formError');if(target)target.textContent=`Page startup failed: ${error.message||error}`;console.error(error);}
   function load(src,onload){const script=document.createElement('script');script.src=new URL(src,baseUrl).href;script.onload=onload;script.onerror=()=>fail(new Error(`Unable to load ${src}`));document.head.appendChild(script);}
-  load('vendor/astronomy-engine.min.js',()=>load('vedic_formal_app.js?v=m133',()=>{}));
+  // Fetch both scripts together while preserving engine-before-app execution.
+  for(const src of ['vendor/astronomy-engine.min.js','vedic_formal_app.js?v=m133']){const script=document.createElement('script');script.async=false;script.src=new URL(src,baseUrl).href;script.onerror=()=>fail(new Error('Unable to load '+src));document.head.appendChild(script);}
 })();
 
 
