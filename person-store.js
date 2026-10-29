@@ -3,6 +3,8 @@ import {STORES,LABELS,archiveRef,read as readLegacy,snapshot as legacySnapshot,p
 import {isoDate,offsetSeconds,resolveWallTime} from './profile-time.js';
 import {loadProfileCalendar} from './profile-calendar-loader.js';
 import {orderedProfileKeys} from './profile-order.js';
+import {PROFILE_ORDER_KEY} from './profile-order.js';
+import {PROFILE_GROUPS_KEY,readGroups,validateGroups,mergeGroups} from './profile-groups.js';
 export const PEOPLE_KEY='magiclore_people_v1';
 const PENDING='magiclore_people_pending_v1',JOURNAL='magiclore_people_recovery_v1';
 const copy=x=>JSON.parse(JSON.stringify(x));
@@ -37,7 +39,7 @@ export function validatePeople(data){
   if(data.selectedId!==null&&(!idValid(data.selectedId)||!data.records.some(p=>p.id===data.selectedId&&!p.deletedAt)))throw Error('所选人物档案不存在。');return data;
 }
 function rawSnapshot(keys,storage){return {version:1,values:Object.fromEntries(keys.map(k=>[k,storage.getItem(k)]))};}
-function restoreRaw(snapshot,storage){if(snapshot?.version!==1||!snapshot.values)throw Error('档案恢复记录无效。');const allowed=new Set([PEOPLE_KEY,NOTES_KEY,...Object.values(STORES)]);for(const [key,raw] of Object.entries(snapshot.values)){if(!allowed.has(key)||raw!==null&&typeof raw!=='string')throw Error('档案恢复记录包含无效键。');}for(const [key,raw] of Object.entries(snapshot.values))if(raw===null)storage.removeItem(key);else storage.setItem(key,raw);}
+function restoreRaw(snapshot,storage){if(snapshot?.version!==1||!snapshot.values)throw Error('档案恢复记录无效。');const allowed=new Set([PEOPLE_KEY,NOTES_KEY,PROFILE_GROUPS_KEY,PROFILE_ORDER_KEY,...Object.values(STORES)]);for(const [key,raw] of Object.entries(snapshot.values)){if(!allowed.has(key)||raw!==null&&typeof raw!=='string')throw Error('档案恢复记录包含无效键。');}for(const [key,raw] of Object.entries(snapshot.values))if(raw===null)storage.removeItem(key);else storage.setItem(key,raw);}
 export function initializePeople(storage=localStorage){const raw=storage.getItem(PENDING);if(raw){restoreRaw(JSON.parse(raw),storage);storage.removeItem(PENDING);}}
 export function readPeople(storage=localStorage){initializePeople(storage);const raw=storage.getItem(PEOPLE_KEY);return raw?validatePeople(JSON.parse(raw)):empty();}
 function commit(values,storage){
@@ -110,7 +112,7 @@ export function personFromLegacy(item,side='a'){
   return {name,sex:['male','female'].includes(i.gender)?i.gender:null,notes:typeof r.note==='string'?r.note:'',birth:{date:{calendar:lunar?'lunar':knownDate?'gregorian':'unknown',value:lunar?(i.lunarDate||date):knownDate?date:null,isLeapMonth:lunar&&typeof i.isLeapMonth==='boolean'?i.isLeapMonth:null,gregorian:knownDate?date:null,conversion:null},time:validTime,place:{status:placeName?'known':'unknown',name:placeName,locationId:null,latitude:placeName?nullableNumber(i.latitude):null,longitude:placeName?nullableNumber(i.longitude):null,source:'legacy'},zone:{iana,fixedOffset,offsetChoice:null},originalInput:pair?{date,side}:item.type==='personal'?{date:r.iso}:objective},provenance:{store:item.type,reference:item.ref,sourceId:r.id??null,...(pair?{side}:{})}};
 }
 export function hideLegacy(key,hidden=true,storage=localStorage){const data=readPeople(storage);data.hiddenLegacy=hidden?[...new Set([...data.hiddenLegacy,key])]:data.hiddenLegacy.filter(k=>k!==key);saveEnvelope(data,storage);}
-export function exportProfiles(storage=localStorage){initializePeople(storage);return {format:'MagicLore',version:2,exportedAt:new Date().toISOString(),peopleRaw:storage.getItem(PEOPLE_KEY),notes:readNotes(storage),stores:legacySnapshot(storage).stores};}
+export function exportProfiles(storage=localStorage){initializePeople(storage);return {format:'MagicLore',version:2,exportedAt:new Date().toISOString(),peopleRaw:storage.getItem(PEOPLE_KEY),notes:readNotes(storage),profileGroups:readGroups(storage),profileOrder:JSON.parse(storage.getItem(PROFILE_ORDER_KEY)||'[]'),stores:legacySnapshot(storage).stores};}
 const canonical=value=>JSON.stringify(value,(_,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v);
 function contentKey(p){const {id,conflictOf,...rest}=p;return canonical(rest);}
 export async function importProfiles(text,storage=localStorage){
@@ -121,9 +123,13 @@ export async function importProfiles(text,storage=localStorage){
   if(incoming?.records.some(p=>p.birth.date.calendar==='lunar'&&p.birth.date.gregorian)){const {lunarToGregorian}=await loadProfileCalendar();for(const p of incoming.records){const d=p.birth.date;if(d.calendar==='lunar'&&d.gregorian&&lunarToGregorian(d.value,d.isLeapMonth).gregorian!==d.gregorian)throw Error('农历原值与备份中的公历不一致，请核对原始文件。');}}
   const values={},current=readPeople(storage),idMap={};let added=0,conflicts=0;
   if(data.notes!==undefined)validateNotes(data.notes);
+  if(data.profileGroups!==undefined)validateGroups(data.profileGroups);
+  if(data.profileOrder!==undefined&&(!Array.isArray(data.profileOrder)||data.profileOrder.length>20000||data.profileOrder.some(k=>typeof k!=='string'||k.length>500)))throw Error('档案排序资料无效。');
   if(incoming){for(const p of incoming.records){const same=current.records.find(r=>r.id===p.id);if(same&&canonical(same)===canonical(p))continue;if(same){const existingConflict=current.records.find(r=>r.conflictOf===p.id&&contentKey(r)===contentKey(p));if(existingConflict){idMap[p.id]=existingConflict.id;continue;}const conflictId=newId();current.records.push({...copy(p),id:conflictId,conflictOf:p.id});idMap[p.id]=conflictId;conflicts++;}else current.records.push(copy(p));added++;}current.hiddenLegacy=[...new Set([...current.hiddenLegacy,...incoming.hiddenLegacy])];validatePeople(current);values[PEOPLE_KEY]=JSON.stringify(current);}
   for(const [type,rows] of Object.entries(incomingLegacy)){const old=readLegacy(type,storage),seen=new Set(old.map(canonical)),merged=[...old];for(const row of rows)if(!seen.has(canonical(row))){seen.add(canonical(row));merged.push(row);}if(merged.length>10000)throw Error('旧档案超过 10000 条。');if(merged.length!==old.length)values[STORES[type]]=JSON.stringify(merged);}
   if(data.notes!==undefined)values[NOTES_KEY]=JSON.stringify(mergeNotes(readNotes(storage),data.notes,idMap));
+  if(data.profileGroups!==undefined)values[PROFILE_GROUPS_KEY]=JSON.stringify(mergeGroups(readGroups(storage),data.profileGroups,idMap));
+  if(data.profileOrder!==undefined){const existing=JSON.parse(storage.getItem(PROFILE_ORDER_KEY)||'[]');if(!Array.isArray(existing))throw Error('当前档案排序资料无效。');const mapped=data.profileOrder.map(k=>k.startsWith('person:')?'person:'+(Object.hasOwn(idMap,k.slice(7))?idMap[k.slice(7)]:k.slice(7)):k);values[PROFILE_ORDER_KEY]=JSON.stringify([...new Set([...existing,...mapped])]);}
   if(Object.keys(values).length)commit(values,storage);return {added,conflicts};
 }
 export function recoverProfiles(storage=localStorage){initializePeople(storage);const raw=storage.getItem(JOURNAL);if(!raw)return recoverLegacy(storage);const previous=JSON.parse(raw),before=rawSnapshot(Object.keys(previous.values||{}),storage);storage.setItem(PENDING,JSON.stringify(before));try{restoreRaw(previous,storage);storage.setItem(JOURNAL,JSON.stringify(before));storage.removeItem(PENDING);}catch(error){restoreRaw(before,storage);storage.removeItem(PENDING);throw error;}}

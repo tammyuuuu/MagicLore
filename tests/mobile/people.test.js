@@ -16,7 +16,7 @@ test('排盘档案选择器与档案页共享自定义排序，忽略旧键且�
  const rows=listOrderedPeople({},s);assert.deepEqual(rows.map(p=>p.id),[c.id,a.id,b.id]);
  assert.deepEqual(orderedProfileKeys(listPeople({},s).map(p=>'person:'+p.id),s),rows.map(p=>'person:'+p.id));
  setPersonDeleted(c.id,true,s);assert.deepEqual(listOrderedPeople({},s).map(p=>p.id),[a.id,b.id]);
- s.setItem(PROFILE_ORDER_KEY,'invalid');assert.deepEqual(listOrderedPeople({},s).map(p=>p.id),[a.id,b.id]);
+ s.setItem(PROFILE_ORDER_KEY,'invalid');assert.deepEqual(listOrderedPeople({},s).map(p=>p.id),listPeople({},s).map(p=>p.id));
 });
 test('新建、编辑保持稳定人物 ID，客观资料不补时间地点或排盘选项',()=>{const s=memory(),p=savePerson(facts(),null,s),updated=savePerson({...p,name:'修改名称'},p.id,s);assert.equal(updated.id,p.id);assert.equal(updated.createdAt,p.createdAt);const input=getBirthFacts(p.id,s);assert.equal(input.time,null);assert.equal(input.latitude,null);assert.equal(input.timezoneId,null);assert.ok(input.missing.includes('time'));assert.ok(!('trueSolarTime' in input));assert.equal(listPeople({},s).length,1);});
 test('人物删除可恢复，已选档案不悬空，刷新读取后资料完整',()=>{const s=memory(),p=savePerson(facts(),null,s);selectPerson(p.id,s);assert.equal(getSelectedPerson(s).id,p.id);setPersonDeleted(p.id,true,s);assert.equal(getSelectedPerson(s),null);assert.equal(listPeople({},s).length,0);assert.equal(listPeople({includeDeleted:true},s).length,1);setPersonDeleted(p.id,false,s);assert.equal(getPerson(p.id,s).birth.originalInput.date,'1995-08-12');assert.equal(listPeople({},s).length,1);});

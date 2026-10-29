@@ -2,16 +2,22 @@ import {readPeople,listPeople,getPerson,savePerson,setPersonDeleted,selectPerson
 import {resolveWallTime} from './profile-time.js';
 import {mountPersonEditor} from './person-editor.js';
 import {orderedProfileKeys} from './profile-order.js';
+import {readGroups,emptyGroups,createGroup,renameGroup,deleteGroup,moveToGroup,reorderGroups,groupKeys,saveGroupOrder} from './profile-groups.js';
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dateText=p=>p.birth.date.value?`${p.birth.date.calendar==='lunar'?'农历'+(p.birth.date.isLeapMonth===null?'（闰月待核对） ':p.birth.date.isLeapMonth?'闰月 ':' '):'公历 '}${p.birth.date.value}`:'出生日期未知';
 const timeText=p=>p.birth.time||'时间未知';
 const placeText=p=>p.birth.place.name||'地点未知';
 const messages={gap:'这个当地时刻落在夏令时跳过的时段内，请核对。原始输入会保留，不会自动调整。',ambiguous:'这个当地时刻出现过两次，请核对当时的 UTC 偏移；暂不确定也可以先保存。',conflict:'时区规则与所填 UTC 偏移不一致，请核对；资料不会自动改写。','unknown-zone':'时区未知，暂不换算出生瞬间。','unknown-date':'出生日期未知，暂不换算出生瞬间。','unknown-time':'出生时间未知，不以中午或零点代替。'};
 export function mountProfiles(main,{notify,backup,initialView='people',management=false,startNew=false,startEdit=null,onEditorSaved=null,onEditorCancel=null}){
-  let view=initialView,query='';
+  let view=initialView,query='',activeGroup='all',groupEditor=null;
   function backButton(){const button=main.querySelector('[data-back]');if(button)button.onclick=render;}
   function render(){
     main.innerHTML=management?`<a class="ml-back" href="#settings">← 返回我的</a><div class="pf-page-head"><h1>${view==='trash'?'最近删除':'旧记录管理'}</h1></div><label class="pf-search">搜索记录<input id="personSearch" aria-label="搜索档案" type="search" placeholder="名称、出生日期或地点" value="${esc(query)}"></label><p id="pfCount" class="pf-caption" role="status"></p><div id="profileList"></div>`:`<div class="pf-list-top"><input id="personSearch" aria-label="搜索档案" type="search" placeholder="搜索名称、出生日期或地点" value="${esc(query)}"><button class="pf-add" id="newProfile" aria-label="添加人物档案"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></button></div><div id="profileList"></div>`;
+    if(!management&&view==='people'){
+      const bar=document.createElement('div');bar.id='pfGroups';bar.className='pf-groups';bar.setAttribute('aria-label','档案分组');
+      const tools=document.createElement('div');tools.id='pfGroupTools';tools.className='pf-group-tools';
+      main.querySelector('.pf-list-top').after(bar,tools);
+    }
     main.querySelector('#newProfile')?.addEventListener('click',()=>edit());
     main.querySelector('#personSearch').oninput=e=>{query=e.target.value;drawList();};drawList();
   }
@@ -37,6 +43,9 @@ export function mountProfiles(main,{notify,backup,initialView='people',managemen
 
   }
   function drawCompactList(list,data,legacy,hidden){
+    let grouping;try{grouping=readGroups();}catch(error){grouping=emptyGroups();notify(error.message);}
+    if(activeGroup!=='all'&&activeGroup!=='ungrouped'&&!grouping.groups.some(g=>g.id===activeGroup))activeGroup='ungrouped';
+    drawGroupTabs(grouping);
     const rows=[];
     for(const p of data.records.filter(p=>!p.deletedAt))rows.push({personId:p.id,key:'person:'+p.id,name:p.name,info:`${dateText(p)} ${timeText(p)} · ${placeText(p)}`,open:()=>detail(p.id)});
     for(const item of legacy.rows.filter(x=>x.type==='relationship'&&!hidden.has(x.key))){
@@ -44,14 +53,18 @@ export function mountProfiles(main,{notify,backup,initialView='people',managemen
       rows.push({deleteKey:item.key,key:'pair:'+(r.id||item.key),name:r.title||r.name||'关系合盘',info:`${r.isoA||'日期未知'} × ${r.isoB||'日期未知'}`,open:()=>{location.href=`destiny_book_web.html?mlStore=relationship&mlArchive=${index}&mlRef=${encodeURIComponent(item.ref)}#match`;}});
     }
     let ordered;try{ordered=orderedProfileKeys(rows.map(r=>r.key));}catch{ordered=rows.map(r=>r.key);notify('排序记录无法读取，档案资料未受影响。');}
+    ordered=groupKeys(ordered,activeGroup,grouping);
     const visible=ordered.map(key=>rows.find(r=>r.key===key)).filter(r=>matches(r.name+' '+r.info));
     list.classList.add('pf-compact-list');
     for(const row of visible){
       const card=document.createElement('article');card.className='pf-list-card';card.dataset.orderKey=row.key;
       card.innerHTML=`<button class="pf-list-open"><b class="pf-list-name">${esc(row.name)}</b><small>${esc(row.info)}</small></button><button type="button" class="pf-pair-delete" aria-label="删除${row.personId?'人物':'合盘'}档案">删除</button><button class="pf-drag" aria-label="长按拖动排序：${esc(row.name)}" title="长按拖动；也可使用上下方向键"><svg viewBox="0 0 18 24" aria-hidden="true" fill="currentColor"><circle cx="6" cy="6" r="1.4"/><circle cx="12" cy="6" r="1.4"/><circle cx="6" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="6" cy="18" r="1.4"/><circle cx="12" cy="18" r="1.4"/></svg></button>`;
       card.querySelector('.pf-list-open').onclick=row.open;card.querySelector('.pf-pair-delete')?.addEventListener('click',()=>safe(()=>{if(row.personId)setPersonDeleted(row.personId);else hideLegacy(row.deleteKey);drawList();notify('已移至最近删除，可以恢复。');}));list.append(card);
+      const move=document.createElement('select');move.className='pf-group-move';move.setAttribute('aria-label','移动档案分组：'+row.name);
+      move.append(new Option('未分组',''));for(const g of grouping.groups)move.append(new Option(g.name,g.id));move.value=grouping.assignments[row.key]||'';
+      move.onchange=()=>safe(()=>{moveToGroup(row.key,move.value);drawList();});card.insertBefore(move,card.querySelector('.pf-pair-delete'));
       const handle=card.querySelector('.pf-drag');let timer=null,dragging=false,startX=0,startY=0,dropTarget=null,dropAfter=false;
-      const persist=()=>{const keys=[...list.querySelectorAll('[data-order-key]')].map(c=>c.dataset.orderKey),visibleKeys=new Set(keys);let i=0;const next=ordered.map(k=>visibleKeys.has(k)?keys[i++]:k);try{localStorage.setItem('magiclore_profile_order_v1',JSON.stringify(next));ordered.splice(0,ordered.length,...next);}catch{notify('排序未能保存，请检查设备存储空间。');drawList();}};
+      const persist=()=>{const keys=[...list.querySelectorAll('[data-order-key]')].map(c=>c.dataset.orderKey),visibleKeys=new Set(keys);let i=0;const next=ordered.map(k=>visibleKeys.has(k)?keys[i++]:k);try{if(activeGroup==='all')localStorage.setItem('magiclore_profile_order_v1',JSON.stringify(next));else saveGroupOrder(activeGroup,next);ordered.splice(0,ordered.length,...next);}catch{notify('排序未能保存，请检查设备存储空间。');drawList();}};
       handle.onpointerdown=e=>{if(e.button!==0)return;startX=e.clientX;startY=e.clientY;handle.setPointerCapture(e.pointerId);timer=setTimeout(()=>{dragging=true;card.classList.add('pf-dragging');handle.setAttribute('aria-pressed','true');},180);};
       handle.onpointermove=e=>{if(!dragging){if(Math.hypot(e.clientX-startX,e.clientY-startY)>20)clearTimeout(timer);return;}e.preventDefault();const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('.pf-list-card');list.querySelectorAll('.pf-drop').forEach(c=>c.classList.remove('pf-drop'));dropTarget=target&&target!==card&&target.parentElement===list?target:null;if(dropTarget){dropAfter=e.clientY>=dropTarget.getBoundingClientRect().top+dropTarget.getBoundingClientRect().height/2;dropTarget.classList.add('pf-drop');}if(e.clientY<80)window.scrollBy(0,-12);else if(e.clientY>window.innerHeight-115)window.scrollBy(0,12);};
       handle.onpointerup=()=>{clearTimeout(timer);if(dragging){dragging=false;card.classList.remove('pf-dragging');handle.setAttribute('aria-pressed','false');if(dropTarget?.isConnected){list.insertBefore(card,dropAfter?dropTarget.nextSibling:dropTarget);dropTarget.classList.remove('pf-drop');}dropTarget=null;persist();}};
@@ -60,6 +73,36 @@ export function mountProfiles(main,{notify,backup,initialView='people',managemen
       handle.onkeydown=e=>{if(!['ArrowUp','ArrowDown'].includes(e.key))return;e.preventDefault();if(e.key==='ArrowUp'&&card.previousElementSibling)list.insertBefore(card,card.previousElementSibling);else if(e.key==='ArrowDown'&&card.nextElementSibling)list.insertBefore(card.nextElementSibling,card);persist();handle.focus();};
     }
     if(!visible.length)list.innerHTML=`<p class="pf-empty">${query.trim()?'没有匹配的档案':'暂无档案，点击右上角 ＋ 添加。'}</p>`;
+  }
+  function drawGroupTabs(state){
+    const bar=main.querySelector('#pfGroups'),tools=main.querySelector('#pfGroupTools');if(!bar)return;
+    const scroll=bar.querySelector('.pf-group-scroll')?.scrollLeft||0;bar.replaceChildren();tools.replaceChildren();
+    const scroller=document.createElement('div');scroller.className='pf-group-scroll';bar.append(scroller);
+    const button=(text,label)=>{const b=document.createElement('button');b.type='button';b.textContent=text;if(label)b.setAttribute('aria-label',label);return b;};
+    const moveGroup=(id,target,after=false)=>safe(()=>{const ids=state.groups.map(g=>g.id).filter(x=>x!==id),i=ids.indexOf(target);if(i<0)return;ids.splice(i+(after?1:0),0,id);reorderGroups(ids);drawList();});
+    for(const g of [{id:'all',name:'全部'},{id:'ungrouped',name:'未分组'},...state.groups]){
+      const b=button(g.name);b.setAttribute('aria-pressed',String(activeGroup===g.id));scroller.append(b);let dragged=false,timer,downX=0;
+      b.onclick=()=>{if(dragged){dragged=false;return;}activeGroup=g.id;groupEditor=null;drawList();};
+      if(['all','ungrouped'].includes(g.id))continue;b.dataset.groupId=g.id;b.title='长按拖动排序，或使用左右方向键';
+      b.onkeydown=e=>{if(!['ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const ids=state.groups.map(x=>x.id),i=ids.indexOf(g.id),target=ids[i+(e.key==='ArrowLeft'?-1:1)];if(target)moveGroup(g.id,target,e.key==='ArrowRight');main.querySelector(`[data-group-id="${CSS.escape(g.id)}"]`)?.focus();};
+      let target=null,after=false,holding=false;
+      b.onpointerdown=e=>{if(e.button!==0)return;downX=e.clientX;timer=setTimeout(()=>{holding=true;dragged=true;b.classList.add('pf-group-dragging');b.setPointerCapture(e.pointerId);},220);};
+      b.onpointermove=e=>{if(!holding){if(Math.abs(e.clientX-downX)>12)clearTimeout(timer);return;}e.preventDefault();const hit=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-group-id]');target=hit&&hit!==b?hit.dataset.groupId:null;after=hit?e.clientX>hit.getBoundingClientRect().left+hit.getBoundingClientRect().width/2:false;const rect=scroller.getBoundingClientRect();if(e.clientX<rect.left+24)scroller.scrollLeft-=12;else if(e.clientX>rect.right-24)scroller.scrollLeft+=12;};
+      b.onpointerup=e=>{clearTimeout(timer);if(!holding)return;holding=false;e.preventDefault();b.classList.remove('pf-group-dragging');if(target)moveGroup(g.id,target,after);};
+      b.onpointercancel=()=>{clearTimeout(timer);holding=false;dragged=false;b.classList.remove('pf-group-dragging');};b.oncontextmenu=e=>e.preventDefault();
+      b.addEventListener('touchmove',e=>{if(holding)e.preventDefault();},{passive:false});
+    }
+    if(!['all','ungrouped'].includes(activeGroup)){const settings=button('⋯','编辑当前分组');settings.onclick=()=>{groupEditor=groupEditor===activeGroup?null:activeGroup;drawList();};bar.append(settings);}
+    const add=button('＋','新建分组');add.onclick=()=>{groupEditor='new';drawList();tools.querySelector('input')?.focus();};bar.append(add);scroller.scrollLeft=scroll;
+    tools.hidden=!groupEditor;if(!groupEditor)return;
+    const current=state.groups.find(g=>g.id===groupEditor),form=document.createElement('form'),input=document.createElement('input');input.maxLength=40;input.placeholder='分组名称';input.setAttribute('aria-label','分组名称');input.value=current?.name||'';
+    const save=button(current?'保存名称':'创建');save.type='submit';const cancel=button('取消');cancel.onclick=()=>{groupEditor=null;drawList();};form.append(input,save,cancel);form.onsubmit=e=>{e.preventDefault();safe(()=>{if(current)renameGroup(current.id,input.value);else activeGroup=createGroup(input.value).id;groupEditor=null;drawList();});};tools.append(form);
+    if(current){
+      const left=button('左移','分组左移'),right=button('右移','分组右移'),remove=button('删除分组');
+      const ids=state.groups.map(g=>g.id),i=ids.indexOf(current.id);left.disabled=i===0;right.disabled=i===ids.length-1;
+      left.onclick=()=>moveGroup(current.id,ids[i-1]);right.onclick=()=>moveGroup(current.id,ids[i+1],true);
+      remove.onclick=()=>safe(()=>{deleteGroup(current.id);activeGroup='ungrouped';groupEditor=null;drawList();notify('分组已删除，档案已归入未分组。');});tools.append(left,right,remove);
+    }
   }
   function safe(action){try{action();}catch(error){notify(error.message);}}
   function factsHtml(p){const b=p.birth;let resolution;try{resolution=resolveWallTime(b.date.gregorian,b.time,b.zone);if(b.date.calendar==='lunar'&&!b.date.gregorian)resolution={status:'unconverted',message:'农历原值已保留，尚无可靠的公历日期；排盘前请核对转换。',candidates:[]};}catch(error){resolution={status:'error',message:error.message};}
